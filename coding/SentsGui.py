@@ -391,9 +391,6 @@ class SentsGui:
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
 
-            thread_cam = threading.Thread(target=self.detect_cam(), daemon=True)
-            thread_cam.start()
-
             self.setup_cam(0)
         elif layout == 1:
             if not self.cam_exit:
@@ -409,9 +406,6 @@ class SentsGui:
 
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
-
-            thread_cam = threading.Thread(target=self.detect_cam(), daemon=True)
-            thread_cam.start()
 
             self.setup_cam(1)
         elif layout == 2:
@@ -489,6 +483,23 @@ class SentsGui:
 
         self.cam_used = None
 
+        canvas_loading = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2,
+                                borderwidth=0, highlightthickness=0)
+        canvas_loading.place(x=0, y=0)
+
+        font_size = round(main_layout[1] / self.FONTSIZE_RATIO * 2)
+        font_setting = self.font_style + " " + str(font_size)
+        label_loading = Label(canvas_loading, bg=self.color_bg_2, fg=self.font_color, text="Loading...",
+                              font=font_setting)
+        label_loading.place(x=0, y=0)
+        label_loading.update()
+        label_loading.place(x=width/2 - label_loading.winfo_width()/2, y=height/2 - label_loading.winfo_height()/2)
+        canvas_loading.update()
+
+        thread_cam = threading.Thread(target=self.detect_cam(), daemon=True)
+        thread_cam.start()
+        canvas_loading.place_forget()
+
         """
         top_frame = Frame(child_camera, bg=self.color_bg_2, width=width, height=margin_height, pady=3,
                           borderwidth=0, highlightthickness=0)
@@ -511,7 +522,9 @@ class SentsGui:
         font_setting = self.font_style + " " + str(font_size)
         canvas = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2,
                         borderwidth=0, highlightthickness=0)
-        canvas.grid(row=1, column=1)
+
+        canvas.place(x=0, y=0)
+        # canvas.grid(row=1, column=1)
 
         """
         self.list_cam = ["None"]
@@ -652,20 +665,49 @@ class SentsGui:
         other_layout.place(x=margin_width * 2, y=temp)
 
         def label_fade_1():
-            # self.time_stats_1 = time.time()
-            time.sleep(3)
-            self.status_text_1.configure(text="")
+            self.time_stats_1 = time.time()
+            # time.sleep(3)
+            # self.status_text_1.configure(text="")
 
         def label_fade_2():
-            # self.time_stats_2 = time.time()
-            time.sleep(3)
-            self.status_text_2.configure(text="")
+            self.time_stats_2 = time.time()
+            # time.sleep(3)
+            # self.status_text_2.configure(text="")
 
         def conn_cam(cam, m):
+            canvas_loading_2 = Canvas(child_camera, width=160, height=110, bg=self.color_unavailable[camera],
+                                    borderwidth=0, highlightthickness=0)
+            canvas_loading_2.place(x=width, y=height)
+            canvas_loading_2.update()
+
+            font_size_2 = round(main_layout[1] / self.FONTSIZE_RATIO)
+            font_setting_2 = self.font_style + " " + str(font_size_2)
+            label_loading_2 = Label(canvas_loading_2, bg=self.color_unavailable[camera], fg=self.font_color,
+                                    text="Loading...", font=font_setting_2, padx=3)
+            label_loading_2.place(x=0, y=0)
+            label_loading_2.update()
+            canvas_loading_2.place(x=width / 2 - canvas_loading_2.winfo_width() / 2, y=margin_height)
+            label_loading_2.place(x=canvas_loading_2.winfo_width() / 2 - label_loading_2.winfo_width() / 2,
+                                y=canvas_loading_2.winfo_height() / 2 - label_loading_2.winfo_height() / 2)
+            label_loading_2.update()
+            canvas_loading_2.update()
+
+            ok_btn.configure(state=DISABLED)
+            cancel_btn.configure(state=DISABLED)
+            ok_btn.update()
+            cancel_btn.update()
+
             self.cam_prev = cv2.VideoCapture(cam)
             self.cam_prev_res[0] = int(self.cam_prev.get(cv2.CAP_PROP_FRAME_WIDTH))
             self.cam_prev_res[1] = int(self.cam_prev.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self.cam_used = cam
+
+            canvas_loading_2.place_forget()
+            child_camera.after(1500, normal_btn)
+
+        def normal_btn():
+            ok_btn.configure(state=NORMAL)
+            cancel_btn.configure(state=NORMAL)
 
         def conn_ip(ip_web):
             test_ip = ip_web.get().split('.')
@@ -683,7 +725,7 @@ class SentsGui:
                         print("Failed to Connect")
                         self.status_text_1.configure(text="Failed to Connect")
                         self.status_text_1.place(x=margin_width * 2, y=temp_ori + 110 + 23)
-                        child_camera.after(3000, label_fade_1)
+                        child_camera.after(1, label_fade_1)
                         return
                     if self.url != self.cam_used_index[0] and self.url != self.cam_used_index[1]:
                         print("Successfully Connect")
@@ -691,13 +733,13 @@ class SentsGui:
                         self.status_text_1.place(x=margin_width * 2, y=temp_ori + 110 + 23)
                         # self.cam_prev = cv2.VideoCapture(self.url)
                         child_camera.after(1, lambda a=self.url, b=camera: conn_cam(a, b))
-                        child_camera.after(1000, label_fade_1)
+                        child_camera.after(1, label_fade_1)
                         return
                     else:
                         print("This Camera has already Connected")
                         self.status_text_1.configure(text="This Camera has already Connected")
                         self.status_text_1.place(x=margin_width * 2, y=temp_ori + 110 + 23)
-                        child_camera.after(1000, label_fade_1)
+                        child_camera.after(1, label_fade_1)
                         return
 
             print("Invalid IP Address")
@@ -707,28 +749,35 @@ class SentsGui:
             return
 
         def conn_other(other_text):
-            try:
-                urllib.request.urlopen(other_text.get()).getcode()
-            except:
+            if not other_text.get():
+                try:
+                    urllib.request.urlopen(other_text.get()).getcode()
+                except:
+                    print("Failed to Connect")
+                    self.status_text_2.configure(text="Failed to Connect")
+                    self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
+                    child_camera.after(1, label_fade_2)
+                    return
+
+                if other_text.get() != self.cam_used_index[0] and other_text.get() != self.cam_used_index[1]:
+                    print("Successfully Connect")
+                    self.status_text_2.configure(text="Successfully Connect")
+                    self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
+                    # self.cam_prev = cv2.VideoCapture(other_text.get())
+                    child_camera.after(1, lambda a=other_text.get(), b=camera: conn_cam(a, b))
+                    child_camera.after(1, label_fade_2)
+                    return
+                else:
+                    print("This Camera has already Connected")
+                    self.status_text_2.configure(text="This Camera has already Connected")
+                    self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
+                    child_camera.after(1, label_fade_1)
+                    return
+            else:
                 print("Failed to Connect")
                 self.status_text_2.configure(text="Failed to Connect")
                 self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
-                child_camera.after(3000, label_fade_2)
-                return
-
-            if other_text.get() != self.cam_used_index[0] and other_text.get() != self.cam_used_index[1]:
-                print("Successfully Connect")
-                self.status_text_2.configure(text="Successfully Connect")
-                self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
-                # self.cam_prev = cv2.VideoCapture(other_text.get())
-                child_camera.after(1, lambda a=other_text.get(), b=camera: conn_cam(a, b))
-                child_camera.after(1000, label_fade_2)
-                return
-            else:
-                print("This Camera has already Connected")
-                self.status_text_2.configure(text="This Camera has already Connected")
-                self.status_text_2.place(x=margin_width * 2, y=temp_ori + 185 + 23)
-                child_camera.after(1000, label_fade_1)
+                child_camera.after(1, label_fade_2)
                 return
 
         conn_ip_btn = Button(child_camera, text="Connect", bd=1, bg=self.color_button[0], fg=self.color_button[1],
@@ -1208,16 +1257,16 @@ class SentsGui:
         # time.sleep(0.01)
 
     def update_frame_sched(self):
-        """
         if self.update_frame_mode == 1:
-            if time.time() - self.time_stats_1 > 5:
+            temp = time.time() - self.time_stats_1
+            if 5 < temp < 6:
                 self.time_stats_1 = time.time()
                 self.status_text_1.configure(text="")
 
-            if time.time() - self.time_stats_2 > 5:
+            temp = time.time() - self.time_stats_2
+            if 5 < temp < 6:
                 self.time_stats_2 = time.time()
                 self.status_text_2.configure(text="")
-        """
 
         if time.time() - self.time_called > 0.1:
             self.today = datetime.date.today()
