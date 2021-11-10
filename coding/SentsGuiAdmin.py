@@ -21,6 +21,10 @@ MIN_HEIGHT = 480
 CP = [['#E1D89F', 'black', '#EEEEEE', None, None, '#EEB76B', 'black', '#EEEEEE', '#E1D89F', 'black', '#FFD369'],
       ['#2B2B2B', '#EEEEEE', '#5C527F', None, None, '#261C2C', '#EEEEEE', '#5C527F', '#5C527F', '#EEEEEE', '#FFD369']]
 
+"""
+    Search Tag: Database Connection
+"""
+
 
 class SentsGui(Tk):
     class LoginCanvas(Canvas):
@@ -106,7 +110,15 @@ class SentsGui(Tk):
                 self.place(x=0, y=0)
 
         def button_event(self):
-            # Login Page
+            """
+            # Input
+                self.login_user_frame.get()
+                self.login_pass_strvar.get()
+            """
+
+            # Database Connection
+
+            # Login Frame
             self.canvas_index = 1
             self.root.set_canvas_index(self.canvas_index)
             self.place_forget()
@@ -826,7 +838,22 @@ class SentsGui(Tk):
                     self.veh_plate_str.get() and self.veh_brand_str.get() and \
                     self.veh_model_str.get() and self.veh_roadtax_str.get() and \
                     self.plate_img_path and self.driver_img_path:
+                """
+                # Input
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.driver_name_str.get()
+                    self.plate_img_path
+                    self.driver_img_path
+                """
+
                 print("Save")
+                # Database Connection
             else:
                 print("All Field Must be Filled")
 
@@ -896,7 +923,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.add_btn = Button(self, text="Save", font=font_setting, padx=15, pady=1,
-                                  bg=CP[theme][5], fg=CP[theme][6])
+                                  bg=CP[theme][5], fg=CP[theme][6], command=self.save_driver)
             self.add_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.add_btn.update()
             self.add_btn.place(x=main_layout[0] - self.add_btn.winfo_width(),
@@ -968,6 +995,20 @@ class SentsGui(Tk):
             self.name_str.set("")
             self.username_str.set("")
             self.privilege_cbox.current(0)
+
+        def save_driver(self):
+            if self.name_str.get() and self.username_str.get() and self.privilege_str.get() != "Select...":
+                """
+                # Input
+                    self.name_str.get()
+                    self.username_str.get()
+                    self.privilege_str.get()
+                """
+
+                print("Save")
+                # Database Connection
+            else:
+                print("All Field Must be Filled")
 
     class ProfileAdmin(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
