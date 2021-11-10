@@ -13,6 +13,8 @@ import wmi
 import re
 
 """
+    Search Tag: Database Connection
+    
 Colour Palette
     Black Bluish
         #261C2C
@@ -41,6 +43,8 @@ Colour Palette
 
 MIN_WIDTH = 853
 MIN_HEIGHT = 480
+CP = [['#E1D89F', 'black', '#EEEEEE', None, None, '#EEB76B', 'black', '#EEEEEE', '#E1D89F', 'black', '#FFD369'],
+      ['#2B2B2B', '#EEEEEE', '#5C527F', None, None, '#261C2C', '#EEEEEE', '#5C527F', '#5C527F', '#EEEEEE', '#FFD369']]
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -73,12 +77,201 @@ def fetch_plate_owner(plate_number):
 
 
 class SentsGui:
+    class LoginCanvas(Canvas):
+        def __init__(self, root, theme, screen_width, screen_height, width, height, font_size,
+                     canvas_index):
+            super().__init__(width=screen_width, height=screen_height, bg=CP[theme][0], highlightthickness=0)
+            self.canvas_index = canvas_index
+            self.root = root.root
+            self.root_2 = root
+            self.place(x=width, y=height)
+
+            self.ori_logo = Image.open("./tom.png")
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
+                                                     Image.ANTIALIAS)
+            self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
+            self.login_logo_label = Label(self, image=self.logo_tk, border=0, bg=CP[theme][0])
+            self.login_logo_label.place(x=width, y=height)
+            self.login_logo_label.update()
+            self.login_logo_label.place(x=width / 2 - self.login_logo_label.winfo_width() / 2,
+                                        y=3 / 11 * height - self.login_logo_label.winfo_height() / 2)
+
+            font_setting = "Calibri " + str(round(font_size * 1.45)) + " bold"
+            self.login_title_text = Label(self, text="UTeM Security Entrance System", bg=CP[theme][0],
+                                          fg=CP[theme][1],
+                                          font=font_setting)
+            self.login_title_text.place(x=width, y=height)
+            self.login_title_text.update()
+            self.login_title_text.place(x=width / 2 - self.login_title_text.winfo_width() / 2,
+                                        y=height / 2 - self.login_title_text.winfo_height() / 2)
+
+            self.login_user_frame = Frame(self, bg=CP[theme][0])
+            self.login_user_frame.place(x=self.winfo_width(), y=self.winfo_height())
+
+            font_setting = "Calibri " + str(round(font_size * 1))
+            self.login_user_text = Label(self.login_user_frame, text="{:<9} : ".format("Username"),
+                                         bg=CP[theme][0], fg=CP[theme][1], font=font_setting)
+            self.login_user_text.place(x=0, y=0)
+            self.login_user_text.update()
+
+            self.login_pass_text = Label(self.login_user_frame, text="{:<10} : ".format("Password"),
+                                         bg=CP[theme][0], fg=CP[theme][1], font=font_setting)
+            self.login_pass_text.place(x=0, y=self.login_user_text.winfo_height() * 1.5)
+            self.login_pass_text.update()
+
+            font_setting = "Calibri " + str(round(font_size * 0.85))
+            self.login_user_strvar = StringVar()
+            self.login_user_field = ttk.Entry(self.login_user_frame, width=20, textvariable=self.login_user_strvar,
+                                              font=font_setting)
+            self.login_user_field.place(x=self.login_user_text.winfo_width(),
+                                        y=round(0.05 * self.login_user_text.winfo_height()))
+
+            self.login_pass_strvar = StringVar()
+            self.login_pass_field = ttk.Entry(self.login_user_frame, width=20, textvariable=self.login_pass_strvar,
+                                              font=font_setting, show='*')
+            self.login_pass_field.place(x=self.login_pass_text.winfo_width(),
+                                        y=self.login_user_text.winfo_height() * 1.5 +
+                                          round(0.05 * self.login_user_text.winfo_height()))
+            self.login_user_field.update()
+            self.login_pass_field.update()
+
+            font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
+            self.login_btn = Button(self.login_user_frame, bg=CP[theme][5], fg=CP[theme][6],
+                                    activebackground=CP[theme][8], activeforeground=CP[theme][9], border=1,
+                                    text="Login", font=font_setting, padx=10, pady=1, command=self.button_event)
+            self.login_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
+            self.login_btn.update()
+            self.login_user_frame.config(width=self.login_user_text.winfo_width() + self.login_user_field.winfo_width(),
+                                         height=self.login_user_text.winfo_height() * 2.5 +
+                                                self.login_pass_text.winfo_height())
+            self.login_user_frame.update()
+            self.login_btn.place(x=round(self.login_user_frame.winfo_width() / 2 - self.login_btn.winfo_width() / 2),
+                                 y=round(self.login_user_text.winfo_height() * 2.5 +
+                                         self.login_pass_text.winfo_height()))
+
+            self.login_user_frame.config(height=self.login_user_frame.winfo_height() + self.login_btn.winfo_height())
+            self.login_user_frame.update()
+            self.login_user_frame.place(x=width / 2 - self.login_user_frame.winfo_width() / 2,
+                                        y=height * 3 / 4 - self.login_user_frame.winfo_height() / 2)
+
+            self.update()
+            if self.canvas_index != 0:
+                self.place_forget()
+            else:
+                self.place(x=0, y=0)
+
+        def button_event(self):
+            """
+            # Input
+                self.login_user_strvar.get()
+                self.login_pass_strvar.get()
+            """
+
+            if self.login_user_strvar.get() and self.login_pass_strvar.get():
+                # Database Connection
+                match_account = False
+                privilege = None
+
+                """
+                # Output
+                    match_account
+                    privilege
+                """
+
+                # Login Frame
+                if match_account:
+                    pass
+                else:
+                    print("Incorrect Username or Password")
+
+                # Temporary Login
+                self.canvas_index = 1
+                self.root_2.set_canvas_index(self.canvas_index)
+                self.place_forget()
+                self.root_2.set_canvas()
+                self.login_user_strvar.set("")
+                self.login_pass_strvar.set("")
+                self.login_user_field.focus_set()
+
+            else:
+                print("All Field Must be Filled")
+
+        def update_res(self, width, height, font_size):
+            self.place(x=0, y=0)
+            # self.configure(width=width, height=height)
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
+                                                     Image.ANTIALIAS)
+            self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
+            self.login_logo_label.configure(image=self.logo_tk)
+            self.login_logo_label.place(x=width, y=height)
+            self.login_logo_label.update()
+            self.login_logo_label.place(x=width / 2 - self.login_logo_label.winfo_width() / 2,
+                                        y=3 / 11 * height - self.login_logo_label.winfo_height() / 2)
+
+            font_setting = "Calibri " + str(round(font_size * 1.45)) + " bold"
+            self.login_title_text.configure(font=font_setting)
+            self.login_title_text.update()
+            self.login_title_text.place(x=width / 2 - self.login_title_text.winfo_width() / 2,
+                                        y=height / 2 - self.login_title_text.winfo_height() / 2)
+
+            font_setting = "Calibri " + str(round(font_size * 1))
+            self.login_user_text.configure(font=font_setting)
+            self.login_user_text.place(x=0, y=0)
+            self.login_user_text.update()
+
+            self.login_pass_text.configure(font=font_setting)
+            self.login_pass_text.place(x=0, y=self.login_user_text.winfo_height() * 1.5)
+            self.login_pass_text.update()
+
+            font_setting = "Calibri " + str(round(font_size * 0.85))
+            self.login_user_field.configure(font=font_setting)
+            self.login_user_field.place(x=self.login_user_text.winfo_width(),
+                                        y=round(0.05 * self.login_user_text.winfo_height()))
+
+            self.login_pass_field.configure(font=font_setting)
+            self.login_pass_field.place(x=self.login_pass_text.winfo_width(),
+                                        y=self.login_user_text.winfo_height() * 1.5 +
+                                          round(0.05 * self.login_user_text.winfo_height()))
+            self.login_user_field.update()
+            self.login_pass_field.update()
+
+            font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
+            self.login_btn.configure(font=font_setting)
+            self.login_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
+            self.login_btn.update()
+            self.login_user_frame.config(width=self.login_user_text.winfo_width() + self.login_user_field.winfo_width(),
+                                         height=self.login_user_text.winfo_height() * 2.5 +
+                                                self.login_pass_text.winfo_height())
+            self.login_user_frame.update()
+            self.login_btn.place(x=round(self.login_user_frame.winfo_width() / 2 - self.login_btn.winfo_width() / 2),
+                                 y=round(self.login_user_text.winfo_height() * 2.5 +
+                                         self.login_pass_text.winfo_height()))
+
+            self.login_user_frame.config(height=self.login_user_frame.winfo_height() + self.login_btn.winfo_height())
+            self.login_user_frame.update()
+            self.login_user_frame.place(x=width / 2 - self.login_user_frame.winfo_width() / 2,
+                                        y=height * 3 / 4 - self.login_user_frame.winfo_height() / 2)
+
+            self.update()
+
+        def change_theme(self, theme):
+            self.configure(bg=CP[theme][0])
+            self.login_logo_label.configure(bg=CP[theme][0])
+            self.login_title_text.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.login_user_frame.configure(bg=CP[theme][0])
+            self.login_user_text.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.login_pass_text.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.login_btn.configure(bg=CP[theme][5], fg=CP[theme][6],
+                                     activebackground=CP[theme][8], activeforeground=CP[theme][9])
+            self.update()
+
     def __init__(self):
         self.cam_enter = None  # cv2.VideoCapture(0)
         self.cam_exit = None  # cv2.VideoCapture(url)
         self.cam_prev = None
         self.url = ""
         self.theme = 1
+        self.canvas_index = 0
         self.font_color = ['black', "#EEEEEE"]
         # [border, bg, bg2, selectbg]
         self.color_root = [["#171010", "#E1D89F", "#D89216", "#EEB76B"], ["#171010", "#261C2C", "#2B2B2B", "#3E2C41"]]
@@ -119,6 +312,27 @@ class SentsGui:
         self.margin_height = round(10 / 100 * self.height)
         self.main_layout = [round(self.width - 2 * self.margin_width), round(self.height - 2 * self.margin_height)]
         # print(self.main_layout[1])
+
+        self.today = datetime.date.today()
+        self.date = datetime.date.today()
+
+        self.root.title("UTeM SEntS Security")
+        self.root.geometry('{}x{}'.format(self.width, self.height))
+        self.root.minsize(MIN_WIDTH, MIN_HEIGHT)
+
+        # self.root.resizable(False, False)
+        # self.root.attributes('-fullscreen', True)
+
+        self.root.update()
+        self.login_canvas = self.LoginCanvas(self, self.theme, self.root.winfo_screenwidth(),
+                                             self.root.winfo_screenheight(),
+                                             self.root.winfo_width(), self.root.winfo_height(), self.font_size,
+                                             self.canvas_index)
+        self.canvas = Canvas(self.root, width=self.root.winfo_screenwidth(), height=self.root.winfo_screenheight(),
+                             bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
+
+        self.canvas.place(x=self.root.winfo_width(), y=self.root.winfo_width())
+
         self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
 
         self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
@@ -155,15 +369,15 @@ class SentsGui:
         self.time_stats_1 = time.time()
         self.time_stats_2 = time.time()
 
-        self.today = datetime.date.today()
-        self.date = datetime.date.today()
-
-        self.root.title("UTeM SEntS Security")
-        self.root.geometry('{}x{}'.format(self.width, self.height))
-        self.root.minsize(MIN_WIDTH, MIN_HEIGHT)
-
-        # self.window.resizable(False, False)
-        # self.window.attributes('-fullscreen', True)
+        font_setting = "Calibri " + str(round(self.font_size * 0.73))
+        self.logout_btn = Button(self.canvas, text="Logout", font=font_setting, padx=10, pady=1,
+                                 bg=CP[self.theme][5], fg=CP[self.theme][6],
+                                 activebackground=CP[self.theme][8], activeforeground=CP[self.theme][9],
+                                 command=lambda a=0: self.button_event(a))
+        self.logout_btn.place(x=0, y=0)
+        self.logout_btn.update()
+        self.logout_btn.place(x=self.width - (self.margin_width / 2 + self.logout_btn.winfo_width() / 2),
+                              y=self.margin_height / 2 - self.logout_btn.winfo_height() / 2)
 
         def state_disable():
             pass
@@ -210,6 +424,7 @@ class SentsGui:
 
             self.theme = theme
             change_layout()
+            self.login_canvas.change_theme(self.theme)
             self.root.after(1000, state_enable)
 
         self.menubar = Menu(self.root, background=self.color_menu[self.theme][0],
@@ -219,8 +434,8 @@ class SentsGui:
         self.setting = Menu(self.menubar, tearoff=0, background=self.color_menu[self.theme][0],
                             foreground=self.color_menu[self.theme][1],
                             selectcolor=self.color_menu[self.theme][3])
-        self.setting.add_command(label="Camera Enter", command=lambda a=0: self.setup_cam(a))
-        self.setting.add_command(label="Camera Exit", command=lambda a=1: self.setup_cam(a))
+        self.setting.add_command(label="Camera Enter", command=lambda a=0: self.setup_cam(a), state=DISABLED)
+        self.setting.add_command(label="Camera Exit", command=lambda a=1: self.setup_cam(a), state=DISABLED)
         self.setting.add_separator()
         self.setting.add_radiobutton(label="Light Mode", command=lambda a=0: change_theme(a))
         self.setting.add_radiobutton(label="Dark Mode")
@@ -260,9 +475,6 @@ class SentsGui:
         ]
 
         font_setting = self.font_style + " " + str(self.font_size) + " bold"
-        self.canvas = Canvas(self.root, width=self.root.winfo_screenwidth(), height=self.root.winfo_screenheight(),
-                             bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
-        self.canvas.grid(row=1, column=1)
         self.id_enter = self.canvas.create_text(self.margin_width, self.margin_height, anchor=CENTER,
                                                 fill=self.font_color[self.theme], font=font_setting, text="Enter")
         self.label_enter = Label(self.canvas, bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
@@ -325,7 +537,7 @@ class SentsGui:
         self.label_enter.focus_set()
         self.label_exit.focus_set()
 
-        self.left_layout = Frame(self.root, highlightthickness=1,
+        self.left_layout = Frame(self.canvas, highlightthickness=1,
                                  highlightbackground=self.color_root[self.theme][0],
                                  highlightcolor=self.color_root[self.theme][0], width=self.main_layout[0] / 2 - 50,
                                  height=self.main_layout[1] - round(self.margin_height / 1.6))
@@ -413,6 +625,7 @@ class SentsGui:
         self.calendar.bind("<<CalendarSelected>>", lambda event: self.select_date(event))
 
         # self.calendar.place(x=self.margin_width * 6, y=self.margin_height * 3)
+        self.canvas.place_forget()
 
         def change_layout():
             self.menubar.configure(background=self.color_menu[self.theme][0], foreground=self.color_menu[self.theme][1],
@@ -460,6 +673,8 @@ class SentsGui:
 
             self.label_date_prev.configure(bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
             self.label_date_next.configure(bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
+            self.logout_btn.configure(bg=CP[self.theme][5], fg=CP[self.theme][6],
+                                      activebackground=CP[self.theme][8], activeforeground=CP[self.theme][9])
 
         self.root.update()
 
@@ -580,6 +795,34 @@ class SentsGui:
                 temp = temp[2] + ' ' + MONTH[temp[1]] + ' ' + temp[0]
                 self.label_date.configure(text=temp)
                 self.calendar.selection_set(self.date)
+
+    def button_event(self, type):
+        if type == 0:
+            print("Logout")
+            self.login_canvas.place(x=0, y=0)
+            self.canvas.place_forget()
+
+            # Close All Functions
+            self.setting.entryconfig(self.setting.index("Camera Enter"), state=DISABLED)
+            self.setting.entryconfig(self.setting.index("Camera Exit"), state=DISABLED)
+
+            self.tabs.select(0)
+            self.cam_enter = None
+            self.cam_exit = None
+            self.cam_used_index[0] = None
+            self.cam_used_index[1] = None
+
+            self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
+            self.label_enter.configure(image=self.frame_enter_tk)
+            self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
+            self.label_exit.configure(image=self.frame_exit_tk)
+
+            self.label_enter.place(x=self.margin_width +
+                                     (50 / 100 * self.main_layout[0] - self.frame_enter_tk.width()) / 2,
+                                   y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
+            self.label_exit.place(x=self.margin_width +
+                                    (50 / 100 * self.main_layout[0] - self.frame_exit_tk.width()) / 2,
+                                  y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
 
     def select_date(self, event):
         temp = datetime.datetime.strptime(self.calendar.get_date(), '%m/%d/%y')
@@ -1171,6 +1414,9 @@ class SentsGui:
             # self.canvas.move(self.id_exit, offset[1][0] - self.offset[2][0], offset[1][1] - self.offset[2][1])
 
             self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
+
+            self.login_canvas.update_res(self.width, self.height, self.font_size)
+
             font_setting = self.font_style + " " + str(self.font_size) + " bold"
             self.canvas.itemconfig(self.id_enter, font=font_setting)
             self.canvas.itemconfig(self.id_exit, font=font_setting)
@@ -1222,6 +1468,13 @@ class SentsGui:
             if self.calendar_visib:
                 self.calendar.place(x=self.tabs.winfo_width() / 2 - self.calendar.winfo_width() / 2,
                                     y=5 / 100 * self.tabs.winfo_width() + self.label_date.winfo_height())
+
+            font_setting = "Calibri " + str(round(self.font_size * 0.73))
+            self.logout_btn.configure(font=font_setting)
+            self.logout_btn.place(x=self.width, y=0)
+            self.logout_btn.update()
+            self.logout_btn.place(x=self.width - (self.margin_width / 2 + self.logout_btn.winfo_width() / 2),
+                                  y=self.margin_height / 2 - self.logout_btn.winfo_height() / 2)
 
             # self.offset[0] = offset[0]
             # self.offset[2] = offset[1]
@@ -1506,7 +1759,7 @@ class SentsGui:
         # time.sleep(0.01)
 
     def update_frame_sched(self):
-        if self.update_frame_mode == 1:
+        if self.update_frame_mode == 1 and self.canvas_index == 1:
             temp = time.time() - self.time_stats_1
             if 5 < temp < 6:
                 self.time_stats_1 = time.time()
@@ -1525,6 +1778,18 @@ class SentsGui:
             self.root.update()
 
         self.root.after(10, self.update_frame_sched)
+
+    def set_canvas_index(self, ci):
+        self.canvas_index = ci
+
+    def set_canvas(self):
+        if self.canvas_index == 0:
+            self.login_canvas.update_res(self.winfo_width(), self.winfo_height(), self.font_size)
+        elif self.canvas_index == 1:
+            self.login_canvas.place_forget()
+            self.canvas.place(x=0, y=0)
+            self.setting.entryconfig(self.setting.index("Camera Enter"), state=NORMAL)
+            self.setting.entryconfig(self.setting.index("Camera Exit"), state=NORMAL)
 
 
 def main():

@@ -278,7 +278,8 @@ class SentsGui(Tk):
             self.reg_admin_btn.place(x=temp, y=0)
             temp = temp + self.reg_admin_btn.winfo_width()
             self.prof_btn.place(x=temp, y=0)
-            self.logout_btn.place(x=width - margin_width, y=0)
+            self.logout_btn.place(x=width - (margin_width / 2 + self.logout_btn.winfo_width() / 2),
+                                  y=margin_height / 2 - self.logout_btn.winfo_height() / 2)
             self.layout_btn.place(x=width / 2 - self.layout_btn.winfo_width() / 2,
                                   y=margin_height / 2 - self.view_driver_btn.winfo_height() / 2)
             """
