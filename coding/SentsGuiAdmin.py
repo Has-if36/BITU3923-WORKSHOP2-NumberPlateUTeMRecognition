@@ -112,17 +112,38 @@ class SentsGui(Tk):
         def button_event(self):
             """
             # Input
-                self.login_user_frame.get()
+                self.login_user_strvar.get()
                 self.login_pass_strvar.get()
             """
 
-            # Database Connection
+            if self.login_user_strvar.get() and self.login_pass_strvar.get():
+                # Database Connection
+                match_account = False
+                privilege = None
 
-            # Login Frame
-            self.canvas_index = 1
-            self.root.set_canvas_index(self.canvas_index)
-            self.place_forget()
-            self.root.set_canvas()
+                """
+                # Output
+                    match_account
+                    privilege
+                """
+
+                # Login Frame
+                if match_account:
+                    pass
+                else:
+                    print("Incorrect Username or Password")
+
+                # Temporary Login
+                self.canvas_index = 1
+                self.root.set_canvas_index(self.canvas_index)
+                self.place_forget()
+                self.root.set_canvas()
+                self.login_user_strvar.set("")
+                self.login_pass_strvar.set("")
+                self.login_user_field.focus_set()
+
+            else:
+                print("All Field Must be Filled")
 
         def update_res(self, width, height, font_size):
             self.place(x=0, y=0)
@@ -215,7 +236,7 @@ class SentsGui(Tk):
                                    bg=CP[theme][5], fg=CP[theme][6],
                                    activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                    command=lambda a=5: self.button_event(a))
-            self.logout_btn = Button(self.layout_btn, text="Logout", font=font_setting, padx=10, pady=1,
+            self.logout_btn = Button(self, text="Logout", font=font_setting, padx=10, pady=1,
                                      bg=CP[theme][5], fg=CP[theme][6],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                      command=lambda a=0: self.button_event(a))
@@ -258,7 +279,7 @@ class SentsGui(Tk):
             temp = temp + self.reg_admin_btn.winfo_width()
             self.prof_btn.place(x=temp, y=0)
             self.logout_btn.place(x=width - margin_width, y=0)
-            self.layout_btn.place(x=width/2 - self.layout_btn.winfo_width()/2,
+            self.layout_btn.place(x=width / 2 - self.layout_btn.winfo_width() / 2,
                                   y=margin_height / 2 - self.view_driver_btn.winfo_height() / 2)
             """
             self.view_driver_btn.place(x=width / 2 - self.reg_driver_btn.winfo_width() -
@@ -387,6 +408,8 @@ class SentsGui(Tk):
                                             self.view_admin_btn.winfo_width() + self.reg_admin_btn.winfo_width() +
                                             self.prof_btn.winfo_width(),
                                       height=self.view_driver_btn.winfo_height())
+            self.layout_btn.update()
+
             self.view_driver_btn.place(x=0, y=0)
             temp = self.view_driver_btn.winfo_width()
             self.reg_driver_btn.place(x=temp, y=0)
@@ -396,7 +419,8 @@ class SentsGui(Tk):
             self.reg_admin_btn.place(x=temp, y=0)
             temp = temp + self.reg_admin_btn.winfo_width()
             self.prof_btn.place(x=temp, y=0)
-            self.logout_btn.place(x=width - margin_width, y=0)
+            self.logout_btn.place(x=width - (margin_width / 2 + self.logout_btn.winfo_width() / 2),
+                                  y=margin_height / 2 - self.logout_btn.winfo_height() / 2)
             self.layout_btn.place(x=width / 2 - self.layout_btn.winfo_width() / 2,
                                   y=margin_height / 2 - self.view_driver_btn.winfo_height() / 2)
             """
@@ -923,7 +947,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.add_btn = Button(self, text="Save", font=font_setting, padx=15, pady=1,
-                                  bg=CP[theme][5], fg=CP[theme][6], command=self.save_driver)
+                                  bg=CP[theme][5], fg=CP[theme][6], command=self.save_admin)
             self.add_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.add_btn.update()
             self.add_btn.place(x=main_layout[0] - self.add_btn.winfo_width(),
@@ -996,7 +1020,7 @@ class SentsGui(Tk):
             self.username_str.set("")
             self.privilege_cbox.current(0)
 
-        def save_driver(self):
+        def save_admin(self):
             if self.name_str.get() and self.username_str.get() and self.privilege_str.get() != "Select...":
                 """
                 # Input
@@ -1043,9 +1067,9 @@ class SentsGui(Tk):
             self.username_entry = ttk.Entry(self, width=round(entry_length), textvariable=self.username_str,
                                             font=font_setting, style='pad.TEntry')
             self.new_pass_entry = ttk.Entry(self, width=round(entry_length), textvariable=self.new_pass_str,
-                                            font=font_setting, style='pad.TEntry')
+                                            font=font_setting, style='pad.TEntry', show='*')
             self.conf_pass_entry = ttk.Entry(self, width=round(entry_length), textvariable=self.conf_pass_str,
-                                             font=font_setting, style='pad.TEntry')
+                                             font=font_setting, style='pad.TEntry', show='*')
 
             self.name_entry.place(x=root.winfo_width(), y=root.winfo_width())
             self.name_entry.update()
@@ -1072,7 +1096,8 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.65))
             self.name_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                          bg=CP[theme][5], fg=CP[theme][6])
+                                          bg=CP[theme][5], fg=CP[theme][6],
+                                          command=lambda a=1: self.update_profile(a))
             self.name_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.name_update_btn.update()
             self.name_update_btn.place(x=coord[0] + self.name_entry.winfo_width() + margin_width / 5,
@@ -1080,7 +1105,8 @@ class SentsGui(Tk):
                                          self.name_update_btn.winfo_height() / 2)
 
             self.username_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                              bg=CP[theme][5], fg=CP[theme][6])
+                                              bg=CP[theme][5], fg=CP[theme][6],
+                                              command=lambda a=2: self.update_profile(a))
             self.username_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.username_update_btn.update()
             self.username_update_btn.place(x=coord[0] + self.username_entry.winfo_width() + margin_width / 5,
@@ -1088,7 +1114,8 @@ class SentsGui(Tk):
                                              self.username_update_btn.winfo_height() / 2)
 
             self.pass_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                          bg=CP[theme][5], fg=CP[theme][6])
+                                          bg=CP[theme][5], fg=CP[theme][6],
+                                          command=lambda a=3: self.update_profile(a))
             self.pass_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.pass_update_btn.update()
             self.pass_update_btn.place(x=coord[0] + self.conf_pass_entry.winfo_width() + margin_width / 5,
@@ -1097,7 +1124,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.clear_btn = Button(self, text="Clear", font=font_setting, padx=15, pady=1,
-                                    bg=CP[theme][5], fg=CP[theme][6])
+                                    bg=CP[theme][5], fg=CP[theme][6], command=self.clear)
             self.clear_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() * 1.5,
@@ -1176,6 +1203,48 @@ class SentsGui(Tk):
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() * 1.5,
                                  y=main_layout[1] - self.clear_btn.winfo_height())
+
+        def clear(self):
+            self.name_str.set("")
+            self.username_str.set("")
+            self.new_pass_str.set("")
+            self.conf_pass_str.set("")
+
+        def update_profile(self, type):
+            if type == 1:
+                if self.name_str.get():
+                    """
+                    # Input
+                        self.name_str.get()
+                    """
+
+                    print("Save Name")
+                    # Database Connection
+                else:
+                    print("Name Field Must be Filled")
+            elif type == 2:
+                if self.username_str.get():
+                    """
+                    # Input
+                        self.username_str.get()
+                    """
+                    print("Save Username")
+                    # Database Connection
+                else:
+                    print("Username Field Must be Filled")
+            elif type == 3:
+                if self.new_pass_str.get() and self.new_pass_str.get() == self.conf_pass_str.get():
+                    """
+                    # Input
+                        self.new_pass_str.get()
+                        self.conf_pass_str.get()
+                    """
+                    print("Save Password")
+                    # Database Connection
+                elif self.new_pass_str.get():
+                    print("New Password and Confirm Password are not Same")
+                else:
+                    print("New Password and Confirm Password Field Must be Filled")
 
     def __init__(self, canvas_index):
         self.theme = 1  # Dark Theme
