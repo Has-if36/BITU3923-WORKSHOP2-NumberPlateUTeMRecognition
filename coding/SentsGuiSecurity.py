@@ -25,14 +25,14 @@ Colour Palette
         #171010
         #423F3E
         #2B2B2B
-
+        
     DarkShades2
         #0c242b
         #080a3f
         #01263f
         #0e384b
         #0b3243
-
+        
     Text Color
         #EEEEEE
         #FFF5FD
@@ -63,24 +63,38 @@ MONTH = {
 # url = "https://192.168.1.17:8080/video"
 # sys.setrecursionlimit(1000)
 
+# Fetch Database
+def fetch_history_owner(date):
+    pass
+
+
+def fetch_plate_owner(plate_number):
+    pass
+
+
 class SentsGui:
     def __init__(self):
         self.cam_enter = None  # cv2.VideoCapture(0)
         self.cam_exit = None  # cv2.VideoCapture(url)
         self.cam_prev = None
         self.url = ""
+        self.theme = 1
+        self.font_color = ['black', "#EEEEEE"]
         # [border, bg, bg2, selectbg]
-        self.color_root = ["#171010", "#261C2C", "#2B2B2B", "#3E2C41"]
-        self.color_bg = "#2B2B2B"
-        self.color_bg_2 = "#261C2C"
+        self.color_root = [["#171010", "#E1D89F", "#D89216", "#EEB76B"], ["#171010", "#261C2C", "#2B2B2B", "#3E2C41"]]
+        self.color_bg = ["#6E85B2", "#2B2B2B"]
+        self.color_bg_2 = ["#EEB76B", "#261C2C"]
         self.color_unavailable = ["#171010", "#171010"]
         # [bg, fg, selectorcolor, activebackground, activeforeground]
-        self.color_radiobutton = ["#261C2C", "#EEEEEE", "#5C527F", "#3E2C41", "#EEEEEE"]
+        self.color_radiobutton = [[self.color_bg_2[0], self.font_color[0], "#EEEEEE", "#E1D89F", self.font_color[0]],
+                                  [self.color_bg_2[1], self.font_color[1], "#5C527F", "#3E2C41", self.font_color[1]]]
         # [bg, fg, activebackground, activeforeground]
         self.color_optionmenu = ["#261C2C", "#6E85B2", "#3E2C41", "#EEEEEE", "#916BBF"]
         # [bg, fg, activebackground, activeforeground]
         self.color_button = ["#6E85B2", "#171010", "#5C527F", "#171010"]
-        self.font_color = "#EEEEEE"
+        # [bg, fg, activebackground, activeforeground]
+        self.color_menu = [["#EEEEEE", self.font_color[0], "#EEEEEE", self.font_color[0]],
+                           ["#261C2C", self.font_color[1], "#5C527F", self.font_color[1]]]
         self.font_style = "Calibri"
         self.font_size = 0
         self.FONTSIZE_RATIO = 30.87
@@ -117,7 +131,7 @@ class SentsGui:
         w, h = draw.textsize(self.msg, font=self.font)
         draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                    round(self.frame_unavailable.height / 2 - h / 2)),
-                  self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                  self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
         self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
         self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
 
@@ -129,7 +143,7 @@ class SentsGui:
         w, h = draw.textsize(msg_preview, font=self.font)
         draw.text((round((no_preview.width / 2 - w / 2)),
                    round(no_preview.height / 2 - h / 2)),
-                  msg_preview, self.font_color, font=font_preview, anchor=CENTER, align=CENTER)
+                  msg_preview, "#EEEEEE", font=font_preview, anchor=CENTER, align=CENTER)
         self.no_preview = ImageTk.PhotoImage(no_preview)
 
         self.preview_tk = self.no_preview
@@ -144,26 +158,94 @@ class SentsGui:
         self.today = datetime.date.today()
         self.date = datetime.date.today()
 
-        self.root.title("UTeM SEntS")
+        self.root.title("UTeM SEntS Security")
         self.root.geometry('{}x{}'.format(self.width, self.height))
         self.root.minsize(MIN_WIDTH, MIN_HEIGHT)
+
         # self.window.resizable(False, False)
         # self.window.attributes('-fullscreen', True)
 
+        def state_disable():
+            pass
+
+        def state_enable():
+            self.menubar.entryconfig("Setting", state=NORMAL)
+            """
+            self.tabs.tab(0, state=NORMAL)
+            self.tabs.tab(1, state=NORMAL)
+            self.label_enter.bind("<ButtonPress>", lambda event, a=0: self.on_press(event, a))
+            self.label_exit.bind("<ButtonPress>", lambda event, a=1: self.on_press(event, a))
+            self.label_enter.bind("<ButtonRelease>", lambda event, a=0: self.on_release(event, a))
+            self.label_exit.bind("<ButtonRelease>", lambda event, a=1: self.on_release(event, a))
+            self.label_date.bind("<ButtonPress>", lambda event, a=2: self.on_press(event, a))
+            self.label_date_prev.bind("<ButtonPress>", lambda event, a=3: self.on_press(event, a))
+            self.label_date_next.bind("<ButtonPress>", lambda event, a=4: self.on_press(event, a))
+            self.tabs.bind("<ButtonRelease>", lambda event, a=5: self.on_release(event, a))
+            self.label_date.bind("<ButtonRelease>", lambda event, a=2: self.on_release(event, a))
+            self.label_date_prev.bind("<ButtonRelease>", lambda event, a=3: self.on_release(event, a))
+            self.label_date_next.bind("<ButtonRelease>", lambda event, a=4: self.on_release(event, a))
+            self.tabs.bind("<ButtonRelease>", lambda event, a=5: self.on_release(event, a))
+            self.calendar.bind("<<CalendarSelected>>", lambda event: self.select_date(event))
+            """
+
+        def change_theme(theme):
+            self.menubar.entryconfig("Setting", state=DISABLED)
+            """
+            self.tabs.tab(0, state=DISABLED)
+            self.tabs.tab(1, state=DISABLED)
+            self.label_enter.bind("<ButtonPress>", state_disable)
+            self.label_exit.bind("<ButtonPress>", state_disable)
+            self.label_enter.bind("<ButtonRelease>", state_disable)
+            self.label_exit.bind("<ButtonRelease>", state_disable)
+            self.label_date.bind("<ButtonPress>", state_disable)
+            self.label_date_prev.bind("<ButtonPress>", state_disable)
+            self.label_date_next.bind("<ButtonPress>", state_disable)
+            self.tabs.bind("<ButtonRelease>", state_disable)
+            self.label_date.bind("<ButtonRelease>", state_disable)
+            self.label_date_prev.bind("<ButtonRelease>", state_disable)
+            self.label_date_next.bind("<ButtonRelease>", state_disable)
+            self.tabs.bind("<ButtonRelease>", state_disable)
+            self.calendar.bind("<<CalendarSelected>>", state_disable)
+            """
+
+            self.theme = theme
+            change_layout()
+            self.root.after(1000, state_enable)
+
+        self.menubar = Menu(self.root, background=self.color_menu[self.theme][0],
+                            foreground=self.color_menu[self.theme][1],
+                            activebackground=self.color_menu[self.theme][2],
+                            activeforeground=self.color_menu[self.theme][3])
+        self.setting = Menu(self.menubar, tearoff=0, background=self.color_menu[self.theme][0],
+                            foreground=self.color_menu[self.theme][1],
+                            selectcolor=self.color_menu[self.theme][3])
+        self.setting.add_command(label="Camera Enter", command=lambda a=0: self.setup_cam(a))
+        self.setting.add_command(label="Camera Exit", command=lambda a=1: self.setup_cam(a))
+        self.setting.add_separator()
+        self.setting.add_radiobutton(label="Light Mode", command=lambda a=0: change_theme(a))
+        self.setting.add_radiobutton(label="Dark Mode")
+        self.setting.invoke(self.setting.index("Dark Mode"))
+        self.setting.entryconfig(self.setting.index("Dark Mode"), command=lambda a=1: change_theme(a))
+        self.setting.add_separator()
+        self.setting.add_command(label="Exit", command=self.root.quit)
+        self.menubar.add_cascade(label="Setting", menu=self.setting)
+        self.root.config(menu=self.menubar)
+        self.root.after(1500, state_enable)
+
         """
-        self.top_frame = Frame(self.root, bg=self.color_bg, width=self.width, height=self.margin_height, pady=3,
+        self.top_frame = Frame(self.root, bg=self.color_bg[self.theme], width=self.width, height=self.margin_height, pady=3,
                                borderwidth=0, highlightthickness=0)
         self.top_frame.grid(row=0, columnspan=3)
         # self.mid_frame = Frame(self.root, bg='white', width=self.main_layout[0], height=self.main_layout[1], pady=3)
         # self.mid_frame.grid(row=1, column=1, columnspan=1)
-        self.bot_frame = Frame(self.root, bg=self.color_bg, width=self.width, height=self.margin_height, pady=3,
+        self.bot_frame = Frame(self.root, bg=self.color_bg[self.theme], width=self.width, height=self.margin_height, pady=3,
                                borderwidth=0, highlightthickness=0)
         self.bot_frame.grid(row=2, columnspan=3)
 
-        self.midleft_frame = Frame(self.root, bg=self.color_bg, width=self.margin_width,
+        self.midleft_frame = Frame(self.root, bg=self.color_bg[self.theme], width=self.margin_width,
                                    height=self.main_layout[1], pady=0, borderwidth=0, highlightthickness=0)
         self.midleft_frame.grid(row=1, column=0, rowspan=1)
-        self.midright_frame = Frame(self.root, bg=self.color_bg, width=self.margin_width,
+        self.midright_frame = Frame(self.root, bg=self.color_bg[self.theme], width=self.margin_width,
                                     height=self.main_layout[1], pady=1, borderwidth=0, highlightthickness=0)
         self.midright_frame.grid(row=1, column=2, rowspan=1)
         """
@@ -179,14 +261,14 @@ class SentsGui:
 
         font_setting = self.font_style + " " + str(self.font_size) + " bold"
         self.canvas = Canvas(self.root, width=self.root.winfo_screenwidth(), height=self.root.winfo_screenheight(),
-                             bg=self.color_bg, borderwidth=0, highlightthickness=0)
+                             bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
         self.canvas.grid(row=1, column=1)
         self.id_enter = self.canvas.create_text(self.margin_width, self.margin_height, anchor=CENTER,
-                                                fill=self.font_color, font=font_setting, text="Enter")
-        self.label_enter = Label(self.canvas, bg=self.color_bg, borderwidth=0, highlightthickness=0)
+                                                fill=self.font_color[self.theme], font=font_setting, text="Enter")
+        self.label_enter = Label(self.canvas, bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
         self.id_exit = self.canvas.create_text(self.margin_width, self.margin_height, anchor=CENTER,
-                                               fill=self.font_color, font=font_setting, text="Exit")
-        self.label_exit = Label(self.canvas, bg=self.color_bg, borderwidth=0, highlightthickness=0)
+                                               fill=self.font_color[self.theme], font=font_setting, text="Exit")
+        self.label_exit = Label(self.canvas, bg=self.color_bg[self.theme], borderwidth=0, highlightthickness=0)
 
         self.label_enter.place(x=self.margin_width, y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
         self.label_exit.place(x=self.margin_width, y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
@@ -243,26 +325,26 @@ class SentsGui:
         self.label_enter.focus_set()
         self.label_exit.focus_set()
 
-        self.left_layout = Frame(self.root, highlightthickness=1, highlightbackground=self.color_root[0],
-                                 highlightcolor=self.color_root[0], width=self.main_layout[0] / 2 - 50,
+        self.left_layout = Frame(self.root, highlightthickness=1,
+                                 highlightbackground=self.color_root[self.theme][0],
+                                 highlightcolor=self.color_root[self.theme][0], width=self.main_layout[0] / 2 - 50,
                                  height=self.main_layout[1] - round(self.margin_height / 1.6))
         self.left_layout.place(x=self.width / 2 + 50, y=self.margin_height)
 
         self.s = ttk.Style()
         width_tab = round((self.main_layout[0] / 12.7))  # = 65
-
         self.s.theme_create("MyStyle", parent="clam", settings={
             "TNotebook": {"configure": {"tabmargins": [3, 1, 0, 0],
-                                        "background": self.color_root[2],
+                                        "background": self.color_root[self.theme][2],
                                         'borderwidth': 0,
-                                        'highlightbackground': self.color_root[2],
-                                        'highlightcolor': self.color_root[2]}},
+                                        'highlightbackground': self.color_root[self.theme][2],
+                                        'highlightcolor': self.color_root[self.theme][2]}},
             "TNotebook.Tab": {"configure": {"padding": [width_tab, 5], "borderwidth": 1,
                                             "font": (self.font_style, str(self.font_size - 2)),
-                                            "background": self.color_root[2],
-                                            "foreground": self.font_color},
-                              "map": {"background": [("selected", self.color_root[1])],
-                                      "foreground": [("selected", self.font_color)],
+                                            "background": self.color_root[self.theme][2],
+                                            "foreground": self.font_color[self.theme]},
+                              "map": {"background": [("selected", self.color_root[self.theme][1])],
+                                      "foreground": [("selected", self.font_color[self.theme])],
                                       "expand": [("selected", [3, 1, 3, 1])]}},
             'TCombobox': {'configure': {'selectbackground': self.color_optionmenu[4],
                                         'fieldbackground': 'white',
@@ -272,14 +354,16 @@ class SentsGui:
         })
         # self.default_theme = self.s.theme_use()
         self.s.theme_use('MyStyle')
+
         # print(self.s.theme_names())
 
         self.tabs = ttk.Notebook(self.left_layout)
         # self.tabs.place(x=self.width / 2 + 50, y=self.margin_height)
         tab_size = [self.main_layout[0] / 2 - 50, self.main_layout[1] - round(self.margin_height / 1.6)]
-        self.frame_result = Frame(self.tabs, width=tab_size[0], height=tab_size[1], bg=self.color_root[1])
+        self.frame_result = Frame(self.tabs, width=tab_size[0], height=tab_size[1],
+                                  bg=self.color_root[self.theme][1])
         # width=self.main_layout[0] / 2 - 50, height=self.main_layout[1]-round(self.margin_height/1.6)
-        self.frame_hist = Frame(self.tabs, width=tab_size[0], height=tab_size[1], bg=self.color_root[1])
+        self.frame_hist = Frame(self.tabs, width=tab_size[0], height=tab_size[1], bg=self.color_root[self.theme][1])
         # width=self.main_layout[0] / 2 - 50, height=self.main_layout[1]-round(self.margin_height/1.6)
 
         self.tabs.add(self.frame_result, text=f'{"Result": ^5s}')
@@ -290,15 +374,15 @@ class SentsGui:
         font_setting = self.font_style + " " + str(self.font_size)
         text_date = str(temp[2]) + " " + MONTH[temp[1]] + " " + str(temp[0])
         self.label_date = Label(self.frame_hist, text=text_date, font=font_setting, padx=7, pady=3,
-                                bg=self.color_root[1], fg=self.font_color)
+                                bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
         self.label_date.place(x=0, y=0)
         self.label_date.update()
 
         font_setting = self.font_style + " " + str(round(self.font_size + self.font_size / 4)) + " bold"
         self.label_date_prev = Label(self.frame_hist, text='<', font=font_setting, padx=5,
-                                     bg=self.color_root[1], fg=self.font_color)
+                                     bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
         self.label_date_next = Label(self.frame_hist, text='>', font=font_setting, padx=5,
-                                     bg=self.color_root[1], fg=self.font_color)
+                                     bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
         self.label_date_prev.place(x=0, y=0)
         self.label_date_next.place(x=0, y=0)
         self.label_date_prev.update()
@@ -327,7 +411,55 @@ class SentsGui:
         self.label_date_next.bind("<ButtonRelease>", lambda event, a=4: self.on_release(event, a))
         self.tabs.bind("<ButtonRelease>", lambda event, a=5: self.on_release(event, a))
         self.calendar.bind("<<CalendarSelected>>", lambda event: self.select_date(event))
+
         # self.calendar.place(x=self.margin_width * 6, y=self.margin_height * 3)
+
+        def change_layout():
+            self.menubar.configure(background=self.color_menu[self.theme][0], foreground=self.color_menu[self.theme][1],
+                                   activebackground=self.color_menu[self.theme][2],
+                                   activeforeground=self.color_menu[self.theme][3])
+            self.setting.configure(background=self.color_menu[self.theme][0], foreground=self.color_menu[self.theme][1],
+                                   selectcolor=self.color_menu[self.theme][3])
+            self.root.config(menu=self.menubar)
+
+            self.canvas.configure(bg=self.color_bg[self.theme])
+            self.canvas.itemconfig(self.id_enter, fill=self.font_color[self.theme])
+            self.label_enter.configure(bg=self.color_bg[self.theme])
+            self.canvas.itemconfig(self.id_exit, fill=self.font_color[self.theme])
+            self.label_exit.configure(bg=self.color_bg[self.theme])
+
+            self.left_layout.configure(highlightbackground=self.color_root[self.theme][0],
+                                       highlightcolor=self.color_root[self.theme][0])
+
+            # Theme
+            width_tab = round((self.main_layout[0] / 12.7))  # = 65
+            self.s.theme_settings("MyStyle", settings={
+                "TNotebook": {"configure": {"tabmargins": [3, 1, 0, 0],
+                                            "background": self.color_root[self.theme][2],
+                                            'borderwidth': 0,
+                                            'highlightbackground': self.color_root[self.theme][2],
+                                            'highlightcolor': self.color_root[self.theme][2]}},
+                "TNotebook.Tab": {"configure": {"padding": [width_tab, 5], "borderwidth": 1,
+                                                "font": (self.font_style, str(self.font_size - 2)),
+                                                "background": self.color_root[self.theme][2],
+                                                "foreground": self.font_color[self.theme]},
+                                  "map": {"background": [("selected", self.color_root[self.theme][1])],
+                                          "foreground": [("selected", self.font_color[self.theme])],
+                                          "expand": [("selected", [3, 1, 3, 1])]}},
+                'TCombobox': {'configure': {'selectbackground': self.color_optionmenu[4],
+                                            'fieldbackground': 'white',
+                                            'borderwidth': 0,
+                                            'background': self.color_optionmenu[1]
+                                            }}
+            })
+
+            self.frame_result.configure(bg=self.color_root[self.theme][1])
+            self.frame_hist.configure(bg=self.color_root[self.theme][1])
+
+            self.label_date.configure(bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
+
+            self.label_date_prev.configure(bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
+            self.label_date_next.configure(bg=self.color_root[self.theme][1], fg=self.font_color[self.theme])
 
         self.root.update()
 
@@ -347,7 +479,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
 
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
@@ -361,16 +493,16 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
 
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
         elif layout == 2:
-            self.label_date.configure(bg=self.color_root[3])
+            self.label_date.configure(bg=self.color_root[self.theme][3])
         elif layout == 3:
-            self.label_date_prev.configure(bg=self.color_root[3])
+            self.label_date_prev.configure(bg=self.color_root[self.theme][3])
         elif layout == 4:
-            self.label_date_next.configure(bg=self.color_root[3])
+            self.label_date_next.configure(bg=self.color_root[self.theme][3])
         elif layout == 5:
             pass
 
@@ -386,7 +518,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
 
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
@@ -402,14 +534,14 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
 
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
 
             self.setup_cam(1)
         elif layout == 2:
-            self.label_date.configure(bg=self.color_root[1])
+            self.label_date.configure(bg=self.color_root[self.theme][1])
             if self.calendar_visib:
                 self.calendar.place_forget()
                 self.calendar_visib = False
@@ -419,7 +551,7 @@ class SentsGui:
                 self.calendar_visib = True
             # Calendar and DB Stuff
         elif layout == 3:
-            self.label_date_prev.configure(bg=self.color_root[1])
+            self.label_date_prev.configure(bg=self.color_root[self.theme][1])
             self.date = self.date - datetime.timedelta(days=1)
             temp = str(self.date).split('-')
             temp = temp[2] + ' ' + MONTH[temp[1]] + ' ' + temp[0]
@@ -429,7 +561,7 @@ class SentsGui:
 
             # Database Stuff
         elif layout == 4:
-            self.label_date_next.configure(bg=self.color_root[1])
+            self.label_date_next.configure(bg=self.color_root[self.theme][1])
             self.date = self.date + datetime.timedelta(days=1)
             temp = str(self.date).split('-')
             temp = temp[2] + ' ' + MONTH[temp[1]] + ' ' + temp[0]
@@ -477,20 +609,25 @@ class SentsGui:
         # child_camera.grab_release()  # After Finish Setting
         child_camera.resizable(False, False)
 
+        def on_closing_disable():
+            pass
+
+        child_camera.protocol("WM_DELETE_WINDOW", on_closing_disable)
+
         margin_width = 10 / 100 * width
         margin_height = 10 / 100 * height
         main_layout = [round(width - 2 * margin_width), round(height - 2 * margin_height)]
 
         self.cam_used = None
 
-        canvas_loading = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2,
+        canvas_loading = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2[self.theme],
                                 borderwidth=0, highlightthickness=0)
         canvas_loading.place(x=0, y=0)
 
         font_size = round(main_layout[1] / self.FONTSIZE_RATIO * 2)
         font_setting = self.font_style + " " + str(font_size)
-        label_loading = Label(canvas_loading, bg=self.color_bg_2, fg=self.font_color, text="Loading...",
-                              font=font_setting)
+        label_loading = Label(canvas_loading, bg=self.color_bg_2[self.theme], fg=self.font_color[self.theme],
+                              text="Loading...", font=font_setting)
         label_loading.place(x=0, y=0)
         label_loading.update()
         label_loading.place(x=width / 2 - label_loading.winfo_width() / 2,
@@ -502,26 +639,26 @@ class SentsGui:
         canvas_loading.place_forget()
 
         """
-        top_frame = Frame(child_camera, bg=self.color_bg_2, width=width, height=margin_height, pady=3,
+        top_frame = Frame(child_camera, bg=self.color_bg_2[self.theme], width=width, height=margin_height, pady=3,
                           borderwidth=0, highlightthickness=0)
         top_frame.grid(row=0, columnspan=3)
         # self.mid_frame = Frame(self.root, bg='white', width=main_layout[0], height=main_layout[1], pady=3)
         # self.mid_frame.grid(row=1, column=1, columnspan=1)
-        bot_frame = Frame(child_camera, bg=self.color_bg_2, width=width, height=margin_height, pady=3,
+        bot_frame = Frame(child_camera, bg=self.color_bg_2[self.theme], width=width, height=margin_height, pady=3,
                           borderwidth=0, highlightthickness=0)
         bot_frame.grid(row=2, columnspan=3)
 
-        midleft_frame = Frame(child_camera, bg=self.color_bg_2, width=margin_width,
+        midleft_frame = Frame(child_camera, bg=self.color_bg_2[self.theme], width=margin_width,
                               height=main_layout[1], pady=0, borderwidth=0, highlightthickness=0)
         midleft_frame.grid(row=1, column=0, rowspan=1)
-        midright_frame = Frame(child_camera, bg=self.color_bg_2, width=margin_width,
+        midright_frame = Frame(child_camera, bg=self.color_bg_2[self.theme], width=margin_width,
                                height=main_layout[1], pady=1, borderwidth=0, highlightthickness=0)
         midright_frame.grid(row=1, column=2, rowspan=1)
         """
 
         font_size = round(main_layout[1] / self.FONTSIZE_RATIO) + 4
         font_setting = self.font_style + " " + str(font_size)
-        canvas = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2,
+        canvas = Canvas(child_camera, width=width, height=height, bg=self.color_bg_2[self.theme],
                         borderwidth=0, highlightthickness=0)
 
         canvas.place(x=0, y=0)
@@ -545,31 +682,37 @@ class SentsGui:
                 break
         """
 
-        self.label_prev = Label(child_camera, bg=self.color_bg_2, borderwidth=0, highlightthickness=0)
+        self.label_prev = Label(child_camera, bg=self.color_bg_2[self.theme], borderwidth=0, highlightthickness=0)
         self.label_prev.place(x=(width / 2 - self.no_preview.width() / 2), y=margin_height)
         self.label_prev.configure(image=self.no_preview)
 
         option = 0
-        label_device = Label(child_camera, text="Devices:", font=font_setting, fg=self.font_color,
-                             bg=self.color_bg_2, borderwidth=0, highlightthickness=0)
+        label_device = Label(child_camera, text="Devices:", font=font_setting, fg=self.font_color[self.theme],
+                             bg=self.color_bg_2[self.theme], borderwidth=0, highlightthickness=0)
 
         font_size = font_size - 4
         font_setting = self.font_style + " " + str(font_size)
 
         radio_opt1 = Radiobutton(child_camera, text="Connected Device", variable=option, value=0,
-                                 bg=self.color_radiobutton[0], fg=self.color_radiobutton[1],
-                                 selectcolor=self.color_radiobutton[2], activebackground=self.color_radiobutton[3],
-                                 activeforeground=self.color_radiobutton[4], command=lambda a=1: self.radiocam_func(a),
+                                 bg=self.color_radiobutton[self.theme][0], fg=self.color_radiobutton[self.theme][1],
+                                 selectcolor=self.color_radiobutton[self.theme][2],
+                                 activebackground=self.color_radiobutton[self.theme][3],
+                                 activeforeground=self.color_radiobutton[self.theme][4],
+                                 command=lambda a=1: self.radiocam_func(a),
                                  font=font_setting, width=40, justify=LEFT, anchor=NW)
         radio_opt2 = Radiobutton(child_camera, text="IP Address via IP Webcam", variable=option, value=1,
-                                 bg=self.color_radiobutton[0], fg=self.color_radiobutton[1],
-                                 selectcolor=self.color_radiobutton[2], activebackground=self.color_radiobutton[3],
-                                 activeforeground=self.color_radiobutton[4], command=lambda a=2: self.radiocam_func(a),
+                                 bg=self.color_radiobutton[self.theme][0], fg=self.color_radiobutton[self.theme][1],
+                                 selectcolor=self.color_radiobutton[self.theme][2],
+                                 activebackground=self.color_radiobutton[self.theme][3],
+                                 activeforeground=self.color_radiobutton[self.theme][4],
+                                 command=lambda a=2: self.radiocam_func(a),
                                  font=font_setting, width=40, justify=LEFT, anchor=NW)
         radio_opt3 = Radiobutton(child_camera, text="Other Link URL", variable=option, value=2,
-                                 bg=self.color_radiobutton[0], fg=self.color_radiobutton[1],
-                                 selectcolor=self.color_radiobutton[2], activebackground=self.color_radiobutton[3],
-                                 activeforeground=self.color_radiobutton[4], command=lambda a=3: self.radiocam_func(a),
+                                 bg=self.color_radiobutton[self.theme][0], fg=self.color_radiobutton[self.theme][1],
+                                 selectcolor=self.color_radiobutton[self.theme][2],
+                                 activebackground=self.color_radiobutton[self.theme][3],
+                                 activeforeground=self.color_radiobutton[self.theme][4],
+                                 command=lambda a=3: self.radiocam_func(a),
                                  font=font_setting, width=40, justify=LEFT, anchor=NW)
         # button_ok = Button(child_camera, text='Ok', command=sendGift, default='active')
 
@@ -616,6 +759,11 @@ class SentsGui:
         def combobox_cam(event):
             if combobox1.get() == combobox1["values"][0]:
                 self.cam_prev = None
+                self.label_prev.configure(image=self.no_preview)
+                self.label_prev.update()
+                self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                         (self.label_prev.winfo_width() / self.label_prev.winfo_height()) / 2)
+                                      , y=48.2)
                 return
             else:
                 # self.cam_prev = cv2.VideoCapture()
@@ -648,8 +796,10 @@ class SentsGui:
         other_layout['state'] = 'disabled'
 
         font_setting = self.font_style + " " + str(round(font_size * 0.7))
-        self.status_text_1 = Label(child_camera, bg=self.color_bg_2, fg=self.color_radiobutton[1], font=font_setting)
-        self.status_text_2 = Label(child_camera, bg=self.color_bg_2, fg=self.color_radiobutton[1], font=font_setting)
+        self.status_text_1 = Label(child_camera, bg=self.color_bg_2[self.theme],
+                                   fg=self.color_radiobutton[self.theme][1], font=font_setting)
+        self.status_text_2 = Label(child_camera, bg=self.color_bg_2[self.theme],
+                                   fg=self.color_radiobutton[self.theme][1], font=font_setting)
 
         label_device.place(x=margin_width, y=margin_height + 120)
         temp_ori = margin_width + 35 + 120
@@ -683,7 +833,7 @@ class SentsGui:
 
             font_size_2 = round(main_layout[1] / self.FONTSIZE_RATIO)
             font_setting_2 = self.font_style + " " + str(font_size_2)
-            label_loading_2 = Label(canvas_loading_2, bg=self.color_unavailable[camera], fg=self.font_color,
+            label_loading_2 = Label(canvas_loading_2, bg=self.color_unavailable[camera], fg="#EEEEEE",
                                     text="Loading...", font=font_setting_2, padx=3)
             label_loading_2.place(x=0, y=0)
             label_loading_2.update()
@@ -695,6 +845,7 @@ class SentsGui:
 
             ok_btn.configure(state=DISABLED)
             cancel_btn.configure(state=DISABLED)
+            # child_camera.protocol("WM_DELETE_WINDOW", on_closing_disable())
             ok_btn.update()
             cancel_btn.update()
 
@@ -709,6 +860,7 @@ class SentsGui:
         def normal_btn():
             ok_btn.configure(state=NORMAL)
             cancel_btn.configure(state=NORMAL)
+            # child_camera.protocol("WM_DELETE_WINDOW", on_closing_disable())
 
         def conn_ip(ip_web):
             test_ip = ip_web.get().split('.')
@@ -750,7 +902,7 @@ class SentsGui:
             return
 
         def conn_other(other_text):
-            if not other_text.get():
+            if other_text.get():
                 try:
                     urllib.request.urlopen(other_text.get()).getcode()
                 except:
@@ -807,6 +959,7 @@ class SentsGui:
             self.update_frame_mode = 0
             self.cam_prev = None
             self.close = True
+            self.update_screen(False)
             # self.update_setting = True
             """
             if camera == 0 and self.cam_enter:
@@ -834,6 +987,7 @@ class SentsGui:
             self.update_frame_mode = 0
             self.cam_prev = None
             self.close = True
+            self.update_screen(False)
             # self.update_setting = True
             child_camera.destroy()
 
@@ -878,6 +1032,11 @@ class SentsGui:
             conn_other_btn['state'] = DISABLED
             if combobox1.get() == combobox1["values"][0]:
                 self.cam_prev = None
+                self.label_prev.configure(image=self.no_preview)
+                self.label_prev.update()
+                self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                         (self.label_prev.winfo_width() / self.label_prev.winfo_height()) / 2)
+                                      , y=48.2)
 
             ip_web.set("")
             other_text.set("")
@@ -889,6 +1048,11 @@ class SentsGui:
             conn_ip_btn['state'] = NORMAL
             conn_other_btn['state'] = DISABLED
             self.cam_prev = None
+            self.label_prev.configure(image=self.no_preview)
+            self.label_prev.update()
+            self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                     (self.label_prev.winfo_width() / self.label_prev.winfo_height()) / 2)
+                                  , y=48.2)
 
             combobox1.current(0)
             other_text.set("")
@@ -900,6 +1064,11 @@ class SentsGui:
             conn_ip_btn['state'] = DISABLED
             conn_other_btn['state'] = NORMAL
             self.cam_prev = None
+            self.label_prev.configure(image=self.no_preview)
+            self.label_prev.update()
+            self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                     (self.label_prev.winfo_width() / self.label_prev.winfo_height()) / 2)
+                                  , y=48.2)
 
             combobox1.current(0)
             ip_web.set("")
@@ -1057,6 +1226,77 @@ class SentsGui:
             # self.offset[0] = offset[0]
             # self.offset[2] = offset[1]
 
+            if not self.cam_enter:
+                self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
+                                                           round(40 / 100 * self.main_layout[1])),
+                                                   color=self.color_unavailable[0])
+
+                self.font = ImageFont.truetype("arial.ttf", round(self.font_size * 1.07))
+                self.msg = "Video Output is Unavailable.\nClick Here to Set Up Camera"
+                draw = ImageDraw.Draw(self.frame_unavailable)
+                w, h = draw.textsize(self.msg, font=self.font)
+                draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
+                           round(self.frame_unavailable.height / 2 - h / 2)),
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
+                self.label_enter.configure(image=self.frame_enter_tk)
+
+            if not self.cam_exit:
+                self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
+                                                           round(40 / 100 * self.main_layout[1])),
+                                                   color=self.color_unavailable[1])
+                self.font = ImageFont.truetype("arial.ttf", round(self.font_size * 1.07))
+                draw = ImageDraw.Draw(self.frame_unavailable)
+                w, h = draw.textsize(self.msg, font=self.font)
+                draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
+                           round(self.frame_unavailable.height / 2 - h / 2)),
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
+                self.label_exit.configure(image=self.frame_exit_tk)
+
+            self.label_enter.place(x=self.margin_width +
+                                     (50 / 100 * self.main_layout[0] - self.frame_enter_tk.width()) / 2,
+                                   y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
+            self.label_exit.place(x=self.margin_width +
+                                    (50 / 100 * self.main_layout[0] - self.frame_exit_tk.width()) / 2,
+                                  y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
+
+        elif not update:
+            if not self.cam_enter:
+                self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
+                                                           round(40 / 100 * self.main_layout[1])),
+                                                   color=self.color_unavailable[0])
+
+                self.font = ImageFont.truetype("arial.ttf", round(self.font_size * 1.07))
+                self.msg = "Video Output is Unavailable.\nClick Here to Set Up Camera"
+                draw = ImageDraw.Draw(self.frame_unavailable)
+                w, h = draw.textsize(self.msg, font=self.font)
+                draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
+                           round(self.frame_unavailable.height / 2 - h / 2)),
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
+                self.label_enter.configure(image=self.frame_enter_tk)
+
+            if not self.cam_exit:
+                self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
+                                                           round(40 / 100 * self.main_layout[1])),
+                                                   color=self.color_unavailable[1])
+                self.font = ImageFont.truetype("arial.ttf", round(self.font_size * 1.07))
+                draw = ImageDraw.Draw(self.frame_unavailable)
+                w, h = draw.textsize(self.msg, font=self.font)
+                draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
+                           round(self.frame_unavailable.height / 2 - h / 2)),
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
+                self.label_exit.configure(image=self.frame_exit_tk)
+
+            self.label_enter.place(x=self.margin_width +
+                                     (50 / 100 * self.main_layout[0] - self.frame_enter_tk.width()) / 2,
+                                   y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
+            self.label_exit.place(x=self.margin_width +
+                                    (50 / 100 * self.main_layout[0] - self.frame_exit_tk.width()) / 2,
+                                  y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
+
     def setup_camera(self, camera, camera_enter):
         if camera_enter:
             self.cam_enter = cv2.VideoCapture(camera)
@@ -1083,7 +1323,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_exit = self.frame_unavailable
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
@@ -1108,7 +1348,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_exit = self.frame_unavailable
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
@@ -1125,6 +1365,11 @@ class SentsGui:
                                                             round(40 / 100 * self.main_layout[1])))
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_enter)
                 self.label_enter.configure(image=self.frame_enter_tk)
+                self.label_enter.configure(image=self.frame_enter_tk)
+                self.label_enter.place(x=self.margin_width +
+                                         (50 / 100 * self.main_layout[0] - self.frame_enter_tk.width()) / 2,
+                                       y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
+            """
             else:
                 self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
                                                            round(40 / 100 * self.main_layout[1])),
@@ -1134,9 +1379,10 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
+            """
 
             if self.cam_exit:
                 camera, frame = self.cam_exit.read()
@@ -1147,6 +1393,11 @@ class SentsGui:
                                                           round(40 / 100 * self.main_layout[1])))
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_exit)
                 self.label_exit.configure(image=self.frame_exit_tk)
+                self.label_exit.configure(image=self.frame_exit_tk)
+                self.label_exit.place(x=self.margin_width +
+                                        (50 / 100 * self.main_layout[0] - self.frame_exit_tk.width()) / 2,
+                                      y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
+            """
             else:
                 self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
                                                            round(40 / 100 * self.main_layout[1])),
@@ -1156,18 +1407,10 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color, font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
                 self.frame_exit = self.frame_unavailable
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
-
-            self.label_enter.configure(image=self.frame_enter_tk)
-            self.label_exit.configure(image=self.frame_exit_tk)
-            self.label_enter.place(x=self.margin_width +
-                                     (50 / 100 * self.main_layout[0] - self.frame_enter_tk.width()) / 2,
-                                   y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
-            self.label_exit.place(x=self.margin_width +
-                                    (50 / 100 * self.main_layout[0] - self.frame_exit_tk.width()) / 2,
-                                  y=round(60 / 100 * self.main_layout[1]) + self.margin_height)
+            """
             # self.canvas.itemconfig(self.id_frame_enter, image=self.frame_enter_tk)
             # self.canvas.itemconfig(self.id_frame_exit, image=self.frame_exit_tk)
 
@@ -1196,19 +1439,24 @@ class SentsGui:
                 ratio = self.cam_prev_res[0] / self.cam_prev_res[1]
                 frame_prev = frame_prev.resize((round(self.PREVIEW_MAXHEIGHT * ratio), self.PREVIEW_MAXHEIGHT))
                 self.preview_tk = ImageTk.PhotoImage(frame_prev)
+                self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                         (self.cam_prev_res[0] / self.cam_prev_res[1]) / 2)
+                                      , y=48.2)
+                self.label_prev.configure(image=self.preview_tk)
+            """
             else:
-                self.preview_tk = self.no_preview
+                # self.preview_tk = self.no_preview
+                self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
+                                         (self.cam_prev_res[0] / self.cam_prev_res[1]) / 2)
+                                      , y=48.2)
+                self.label_prev.configure(image=self.no_preview)
                 # self.frame_exit = self.frame_exit.resize((round(50 / 100 * self.main_layout[0]),
                 #                                           round(40 / 100 * self.main_layout[1])))
                 # self.frame_exit_tk = ImageTk.PhotoImage(self.frame_exit)
+            """
 
             # width=514, marhin_height=48.2
             # self.label_enter.place(x=self.margin_width, y=round(10 / 100 * self.main_layout[1]) + self.margin_height)
-
-            self.label_prev.place(x=(514 / 2 - self.PREVIEW_MAXHEIGHT *
-                                     (self.cam_prev_res[0] / self.cam_prev_res[1]) / 2)
-                                  , y=48.2)
-            self.label_prev.configure(image=self.preview_tk)
 
     def config(self, event):
         # while True:
