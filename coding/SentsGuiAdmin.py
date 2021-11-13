@@ -145,7 +145,11 @@ class SentsGui(Tk):
             else:
                 print("All Field Must be Filled")
 
-        def update_res(self, width, height, font_size):
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+
             self.place(x=0, y=0)
             # self.configure(width=width, height=height)
             self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
@@ -320,7 +324,15 @@ class SentsGui(Tk):
             self.place_forget()
             self.root.set_canvas()
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
             self.place(x=0, y=0)
             self.canvas_index = canvas_index
             font_setting = "Calibri " + str(round(font_size * 0.73))
@@ -340,10 +352,13 @@ class SentsGui(Tk):
                 self.view_driver.place(x=margin_width, y=margin_height)
                 self.add_driver.place_forget()
                 self.view_admin.place_forget()
+                self.view_admin.search_frame.place_forget()
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
-                self.view_driver.update_res(width, height, font_size, margin_width, margin_height, main_layout,
-                                            canvas_index)
+                self.view_driver.update_res(root)
+
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
             elif self.canvas_index == 2:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=DISABLED)
@@ -351,12 +366,16 @@ class SentsGui(Tk):
                 self.reg_admin_btn.configure(state=NORMAL)
                 self.prof_btn.configure(state=NORMAL)
                 self.view_driver.place_forget()
+                self.view_driver.search_frame.place_forget()
                 self.add_driver.place(x=margin_width, y=margin_height)
                 self.view_admin.place_forget()
+                self.view_admin.search_frame.place_forget()
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
-                self.add_driver.update_res(width, height, font_size, margin_width, margin_height, main_layout,
-                                           canvas_index)
+                self.add_driver.update_res(root)
+
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
             elif self.canvas_index == 3:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -364,13 +383,15 @@ class SentsGui(Tk):
                 self.reg_admin_btn.configure(state=NORMAL)
                 self.prof_btn.configure(state=NORMAL)
                 self.view_driver.place_forget()
+                self.view_driver.search_frame.place_forget()
                 self.add_driver.place_forget()
                 self.view_admin.place(x=margin_width, y=margin_height)
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
-                self.view_admin.update_res(width, height, font_size, margin_width, margin_height, main_layout,
-                                           canvas_index)
+                self.view_admin.update_res(root)
 
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
             elif self.canvas_index == 4:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -378,12 +399,16 @@ class SentsGui(Tk):
                 self.reg_admin_btn.configure(state=DISABLED)
                 self.prof_btn.configure(state=NORMAL)
                 self.view_driver.place_forget()
+                self.view_driver.search_frame.place_forget()
                 self.add_driver.place_forget()
                 self.view_admin.place_forget()
+                self.view_admin.search_frame.place_forget()
                 self.add_admin.place(x=margin_width, y=margin_height)
                 self.prof_admin.place_forget()
-                self.add_admin.update_res(width, height, font_size, margin_width, margin_height, main_layout,
-                                          canvas_index)
+                self.add_admin.update_res(root)
+
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
             elif self.canvas_index == 5:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -391,12 +416,16 @@ class SentsGui(Tk):
                 self.reg_admin_btn.configure(state=NORMAL)
                 self.prof_btn.configure(state=DISABLED)
                 self.view_driver.place_forget()
+                self.view_driver.search_frame.place_forget()
                 self.add_driver.place_forget()
                 self.view_admin.place_forget()
+                self.view_admin.search_frame.place_forget()
                 self.add_admin.place_forget()
                 self.prof_admin.place(x=margin_width, y=margin_height)
-                self.prof_admin.update_res(width, height, font_size, margin_width, margin_height, main_layout,
-                                           canvas_index)
+                self.prof_admin.update_res(root)
+
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
 
             self.view_driver_btn.update()
             self.reg_driver_btn.update()
@@ -440,14 +469,220 @@ class SentsGui(Tk):
 
     class ViewDriver(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
-            super().__init__(master=canvas, width=main_layout[0], height=main_layout[1], bg=CP[theme][1],
-                             highlightthickness=0)
+            self.mar_search = 0.92
+            self.root = root
+            super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
+                             bg=CP[theme][0], highlightthickness=0)
+            self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
+
+            self.scroll_view = Scrollbar(self, bg=CP[theme][1], orient="vertical")
+            self.scroll_view.pack(side=RIGHT, fill=Y)
+            # self.scroll_view.place(x=0, y=0)
+
+            self.view_canvas = Canvas(self, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
+                                      bg=CP[theme][1], highlightthickness=0)
+            self.view_canvas.pack(side=LEFT, fill=BOTH, expand=True)
+            self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
+            self.scroll_view.configure(command=self.view_canvas.yview)
+
+            self.driver_list = []
+            self.sub_frame = []
+
             self.place(x=root.winfo_width(), y=root.winfo_height())
+            # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+            self.view_canvas.bind('<Configure>', self.onFrameConfigure)
 
-            self.place(x=margin_width, y=margin_height)
+            self.search_frame = Frame(canvas, width=main_layout[0], height=round(0.08 * main_layout[1]),
+                                      bg=CP[theme][0], highlightthickness=0)
+            self.search_frame.place(x=margin_width, y=margin_height)
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
-            self.configure(width=main_layout[0], height=main_layout[1])
+            self.search_str = StringVar()
+            self.search_by_str = StringVar()
+            self.search_filter_str = StringVar()
+            self.search_sort_str = StringVar()
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            # print(font_size, font_size * 0.75)
+            pe = str(round(self.winfo_width() / 412))  # 412
+            ttk.Style().configure('pad.TEntry', padding=(pe + ' 1 ' + pe + ' 1'))
+            ttk.Style().configure('pad.TCombobox', padding=(pe + ' 1 ' + pe + ' 1'))
+            coord_x = margin_width / 10
+            self.search_entry = ttk.Entry(self.search_frame, width=30, textvariable=self.search_str,
+                                          font=font_setting, style='pad.TEntry')
+            self.search_entry.place(x=coord_x, y=0)
+            self.search_entry.update()
+
+            # Default Search By Name
+            coord_x = coord_x + self.search_entry.winfo_width() + math.sqrt(margin_width)
+            self.search_by_cbox = ttk.Combobox(self.search_frame, width=20, font=font_setting,
+                                               textvariable=self.search_by_str, style='pad.TCombobox')
+            self.search_by_cbox['values'] = ['Search By...', 'Name', 'Plate Number', 'Matric No./Staff ID',
+                                             'Car Brand', 'Car Model']
+            self.search_by_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_by_cbox.current(0)
+            self.search_by_cbox.place(x=coord_x, y=0)
+            self.search_by_cbox.update()
+
+            # Default Filter By All
+            coord_x = coord_x + self.search_by_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_filter_cbox = ttk.Combobox(self.search_frame, width=10, font=font_setting,
+                                                   textvariable=self.search_filter_str, style='pad.TCombobox')
+            self.search_filter_cbox['values'] = ['Filter By...', 'All', 'Student', 'Staff']
+            self.search_filter_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_filter_cbox.current(0)
+            self.search_filter_cbox.place(x=coord_x, y=0)
+            self.search_filter_cbox.update()
+
+            # Default Sort By Name Asc.
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_sort_cbox = ttk.Combobox(self.search_frame, width=22, font=font_setting,
+                                                 textvariable=self.search_sort_str, style='pad.TCombobox')
+            self.search_sort_cbox['values'] = ['Sort By...', 'Name Asc.', 'Name Desc.',
+                                               'Plt. Num. Asc.', 'Plt. Num. Desc.',
+                                               'Matric No./Staff ID Asc.', 'Matric No./Staff ID Desc.']
+            self.search_sort_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_sort_cbox.current(0)
+            self.search_sort_cbox.place(x=coord_x, y=0)
+            self.search_sort_cbox.update()
+
+            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
+            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][6],
+                                     activebackground=CP[theme][8], activeforeground=CP[theme][9],
+                                     text="Search", font=font_setting, padx=10, pady=1,
+                                     command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                                     self.search_driver(a, b))
+            self.search_btn.place(x=coord_x + self.search_btn.winfo_width() / 2, y=0)
+            self.search_btn.update()
+            self.place_forget()
+
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
+            self.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
+            if self.driver_list:
+                self.place(x=margin_width, y=margin_height + round((1 - self.mar_search) * main_layout[1]))
+            else:
+                self.place(x=width, y=height)
+            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
+
+            self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
+            self.search_frame.place(x=margin_width, y=margin_height)
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            pe = str(round(self.winfo_width() / 412))  # 412
+            ttk.Style().configure('pad.TEntry', padding=(pe + ' 1 ' + pe + ' 1'))
+            ttk.Style().configure('pad.TCombobox', padding=(pe + ' 1 ' + pe + ' 1'))
+            coord_x = margin_width / 10
+            self.search_entry.configure(font=font_setting, style='pad.TEntry')
+            self.search_entry.place(x=coord_x, y=0)
+            self.search_entry.update()
+
+            # Default Search By Name
+            coord_x = coord_x + self.search_entry.winfo_width() + math.sqrt(margin_width)
+            self.search_by_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_by_cbox.place(x=coord_x, y=0)
+            self.search_by_cbox.update()
+
+            # Default Filter By All
+            coord_x = coord_x + self.search_by_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_filter_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_filter_cbox.place(x=coord_x, y=0)
+            self.search_filter_cbox.update()
+
+            # Default Sort By Name Asc.
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_sort_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_sort_cbox.place(x=coord_x, y=0)
+            self.search_sort_cbox.update()
+
+            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
+            self.search_btn.configure(font=font_setting,
+                                      command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                                      self.search_driver(a, b))
+            self.search_btn.place(x=coord_x, y=0)
+            self.search_btn.update()
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            self.search_by_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                        format(self.search_by_cbox, font_setting))
+            self.search_filter_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                            format(self.search_filter_cbox, font_setting))
+            self.search_sort_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                          format(self.search_sort_cbox, font_setting))
+
+            # Need to Adjust back After Search
+            for frame in self.sub_frame:
+                frame.configure(width=main_layout[0])
+
+            self.view_canvas.bind_all("<MouseWheel>",
+                                      lambda event, a=self, b=[margin_width, margin_height, self.mar_search],
+                                      : self.root._on_mousewheel(event, a, b))
+
+            if not self.driver_list:
+                self.place_forget()
+
+        def search_driver(self, margin, root):
+            main_layout = root.main_layout
+            theme = root.theme
+            self.driver_list.clear()
+            print("Search Driver")
+            # Test
+            if self.search_str.get() == "test":
+                self.driver_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            """
+            Input
+                self.search_str
+                self.search_by_str
+                self.search_sort_str
+                self.search_filter_str
+            """
+
+            # Database Connection
+
+            """
+            Output
+                List of Driver (2D Array)
+                [
+                [Name, Matric/staff id, car plate, vehicle type... so on], 
+                [Name, Matric/staff id, car plate, vehicle type... so on],
+                [Name, Matric/staff id, car plate, vehicle type... so on],
+                ... so on
+                ]
+            """
+
+            # Result Search
+            if self.driver_list:
+                self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
+                y_coord = 0
+                for i, driver in enumerate(self.driver_list):
+                    print(driver)
+                    each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=100, bg=CP[theme][10],
+                                           highlightthickness=0)
+                    label = Label(each_sub_frame, text=i)
+                    label.place(x=0, y=0)
+                    self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                    y_coord = y_coord + 100
+                    self.sub_frame.append(each_sub_frame)
+
+                self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
+                self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
+                self.view_canvas.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
+                self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
+                self.search_frame.place(x=margin[0], y=margin[1])
+                self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+            else:
+                self.place_forget()
+
+        def onFrameConfigure(self, event):
+            self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
 
     class AddDriver(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
@@ -464,7 +699,7 @@ class SentsGui(Tk):
             no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                              round(percent / 100 * main_layout[1])), color='#171010')
             no_img_driver_text = "No Driver\nImage Uploaded"
-            no_img_driver_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+            no_img_driver_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_driver)
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -473,7 +708,7 @@ class SentsGui(Tk):
             self.driver_img_tk = ImageTk.PhotoImage(no_img_driver)
 
             no_img_plate_text = "No Plate Number\nImage Uploaded"
-            no_img_plate_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+            no_img_plate_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_plate)
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -489,7 +724,7 @@ class SentsGui(Tk):
             self.driver_img_label.update()
             self.plate_img_label.update()
 
-            font_setting = "arial " + str(round(font_size * 0.6))
+            font_setting = "Calibri " + str(round(font_size * 0.6))
             self.upload_driver_btn = Button(self, text="Upload Image", padx=5, pady=1, font=font_setting,
                                             bg=CP[theme][5], fg=CP[theme][6],
                                             activebackground=CP[theme][8], activeforeground=CP[theme][9],
@@ -633,7 +868,15 @@ class SentsGui(Tk):
 
             self.place_forget()
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
             self.configure(width=main_layout[0], height=main_layout[1])
             self.update()
 
@@ -648,7 +891,7 @@ class SentsGui(Tk):
                 no_img_driver = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                                   round(percent / 100 * main_layout[1])), color='#171010')
                 no_img_driver_text = "No Driver\nImage Uploaded"
-                no_img_driver_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+                no_img_driver_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
                 draw = ImageDraw.Draw(no_img_driver)
                 w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
                 draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -666,7 +909,7 @@ class SentsGui(Tk):
                 no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                                  round(percent / 100 * main_layout[1])), color='#171010')
                 no_img_plate_text = "No Plate Number\nImage Uploaded"
-                no_img_plate_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+                no_img_plate_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
                 draw = ImageDraw.Draw(no_img_plate)
                 w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
                 draw.text((round((no_img_plate.width / 2 - w / 2)),
@@ -682,7 +925,7 @@ class SentsGui(Tk):
             self.driver_img_label.update()
             self.plate_img_label.update()
 
-            font_setting = "arial " + str(round(font_size * 0.6))
+            font_setting = "Calibri " + str(round(font_size * 0.6))
             self.upload_driver_btn.configure(font=font_setting,
                                              command=lambda a=0, b=main_layout: self.open_filedialogue(a, b))
             self.upload_plate_btn.configure(font=font_setting,
@@ -823,7 +1066,7 @@ class SentsGui(Tk):
             no_img_driver = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                               round(percent / 100 * main_layout[1])), color='#171010')
             no_img_driver_text = "No Driver\nImage Uploaded"
-            no_img_driver_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+            no_img_driver_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_driver)
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -834,7 +1077,7 @@ class SentsGui(Tk):
             no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                              round(percent / 100 * main_layout[1])), color='#171010')
             no_img_plate_text = "No Plate Number\nImage Uploaded"
-            no_img_plate_font = ImageFont.truetype("arial.ttf", round(font_size * 1.1))
+            no_img_plate_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_plate)
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_plate.width / 2 - w / 2)),
@@ -884,14 +1127,219 @@ class SentsGui(Tk):
 
     class ViewAdmin(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
-            super().__init__(master=canvas, width=main_layout[0], height=main_layout[1], bg=CP[theme][10],
-                             highlightthickness=0)
+            self.mar_search = 0.92
+            self.root = root
+            super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
+                             bg=CP[theme][0], highlightthickness=0)
+            self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
+
+            self.scroll_view = Scrollbar(self, bg=CP[theme][1], orient="vertical")
+            self.scroll_view.pack(side=RIGHT, fill=Y)
+            # self.scroll_view.place(x=0, y=0)
+
+            self.view_canvas = Canvas(self, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
+                                      bg=CP[theme][1], highlightthickness=0)
+            self.view_canvas.pack(side=LEFT, fill=BOTH, expand=True)
+            self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
+            self.scroll_view.configure(command=self.view_canvas.yview)
+
+            self.admin_list = []
+            self.sub_frame = []
+
             self.place(x=root.winfo_width(), y=root.winfo_height())
+            # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+            self.view_canvas.bind('<Configure>', self.onFrameConfigure)
 
-            self.place(x=margin_width, y=margin_height)
+            self.search_frame = Frame(canvas, width=main_layout[0], height=round(0.08 * main_layout[1]),
+                                      bg=CP[theme][0], highlightthickness=0)
+            self.search_frame.place(x=margin_width, y=margin_height)
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
-            self.configure(width=main_layout[0], height=main_layout[1])
+            self.search_str = StringVar()
+            self.search_by_str = StringVar()
+            self.search_filter_str = StringVar()
+            self.search_sort_str = StringVar()
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            # print(font_size, font_size * 0.75)
+            pe = str(round(self.winfo_width() / 412))  # 412
+            ttk.Style().configure('pad.TEntry', padding=(pe + ' 1 ' + pe + ' 1'))
+            ttk.Style().configure('pad.TCombobox', padding=(pe + ' 1 ' + pe + ' 1'))
+            coord_x = margin_width / 10
+            self.search_entry = ttk.Entry(self.search_frame, width=30, textvariable=self.search_str,
+                                          font=font_setting, style='pad.TEntry')
+            self.search_entry.place(x=coord_x, y=0)
+            self.search_entry.update()
+
+            # Default Search By Name
+            coord_x = coord_x + self.search_entry.winfo_width() + math.sqrt(margin_width)
+            self.search_by_cbox = ttk.Combobox(self.search_frame, width=20, font=font_setting,
+                                               textvariable=self.search_by_str, style='pad.TCombobox')
+            self.search_by_cbox['values'] = ['Search By...', 'Name', 'Staff ID']
+            self.search_by_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_by_cbox.current(0)
+            self.search_by_cbox.place(x=coord_x, y=0)
+            self.search_by_cbox.update()
+
+            # Default Filter By All
+            coord_x = coord_x + self.search_by_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_filter_cbox = ttk.Combobox(self.search_frame, width=10, font=font_setting,
+                                                   textvariable=self.search_filter_str, style='pad.TCombobox')
+            self.search_filter_cbox['values'] = ['Filter By...', 'All', 'Admin', 'Security']
+            self.search_filter_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_filter_cbox.current(0)
+            self.search_filter_cbox.place(x=coord_x, y=0)
+            self.search_filter_cbox.update()
+
+            # Default Sort By Name Asc.
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_sort_cbox = ttk.Combobox(self.search_frame, width=22, font=font_setting,
+                                                 textvariable=self.search_sort_str, style='pad.TCombobox')
+            self.search_sort_cbox['values'] = ['Sort By...', 'Name Asc.', 'Name Desc.',
+                                               'Staff ID Asc.', 'Staff ID Desc.']
+            self.search_sort_cbox['state'] = 'readonly'  # disabled or readonly
+            self.search_sort_cbox.current(0)
+            self.search_sort_cbox.place(x=coord_x, y=0)
+            self.search_sort_cbox.update()
+
+            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
+            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][6],
+                                     activebackground=CP[theme][8], activeforeground=CP[theme][9],
+                                     text="Search", font=font_setting, padx=10, pady=1,
+                                     command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                                     self.search_admin(a, b))
+            self.search_btn.place(x=coord_x + self.search_btn.winfo_width() / 2, y=0)
+            self.search_btn.update()
+
+            self.place_forget()
+
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
+            self.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
+            if self.admin_list:
+                self.place(x=margin_width, y=margin_height + round((1 - self.mar_search) * main_layout[1]))
+            else:
+                self.place(x=width, y=height)
+            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
+
+            self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
+            self.search_frame.place(x=margin_width, y=margin_height)
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            pe = str(round(self.winfo_width() / 412))  # 412
+            ttk.Style().configure('pad.TEntry', padding=(pe + ' 1 ' + pe + ' 1'))
+            ttk.Style().configure('pad.TCombobox', padding=(pe + ' 1 ' + pe + ' 1'))
+            coord_x = margin_width / 10
+            self.search_entry.configure(font=font_setting, style='pad.TEntry')
+            self.search_entry.place(x=coord_x, y=0)
+            self.search_entry.update()
+
+            # Default Search By Name
+            coord_x = coord_x + self.search_entry.winfo_width() + math.sqrt(margin_width)
+            self.search_by_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_by_cbox.place(x=coord_x, y=0)
+            self.search_by_cbox.update()
+
+            # Default Filter By All
+            coord_x = coord_x + self.search_by_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_filter_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_filter_cbox.place(x=coord_x, y=0)
+            self.search_filter_cbox.update()
+
+            # Default Sort By Name Asc.
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            self.search_sort_cbox.configure(font=font_setting, style='pad.TCombobox')
+            self.search_sort_cbox.place(x=coord_x, y=0)
+            self.search_sort_cbox.update()
+
+            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
+            self.search_btn.configure(font=font_setting,
+                                      command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                                      self.search_admin(a, b))
+            self.search_btn.place(x=coord_x, y=0)
+            self.search_btn.update()
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
+            self.search_by_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                        format(self.search_by_cbox, font_setting))
+            self.search_filter_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                            format(self.search_filter_cbox, font_setting))
+            self.search_sort_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+                                          format(self.search_sort_cbox, font_setting))
+
+            # Need to Adjust back After Search
+            for frame in self.sub_frame:
+                frame.configure(width=main_layout[0])
+
+            self.view_canvas.bind_all("<MouseWheel>",
+                                      lambda event, a=self, b=[margin_width, margin_height, self.mar_search],
+                                      : self.root._on_mousewheel(event, a, b))
+
+            if not self.admin_list:
+                self.place_forget()
+
+        def search_admin(self, margin, root):
+            main_layout = root.main_layout
+            theme = root.theme
+            self.admin_list.clear()
+            print("Search Driver")
+            # Test
+            if self.search_str.get() == "test":
+                self.admin_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            """
+            Input
+                self.search_str
+                self.search_by_str
+                self.search_sort_str
+                self.search_filter_str
+            """
+
+            # Database Connection
+
+            """
+            Output
+                List of Admin (2D Array)
+                [
+                [Name, staff id, car plate... so on], 
+                [Name, staff id, car plate... so on],
+                [Name, staff id, car plate... so on],
+                ... so on
+                ]
+            """
+
+            # Result Search
+            if self.admin_list:
+                self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
+                y_coord = 0
+                for i, admin in enumerate(self.admin_list):
+                    print(admin)
+                    each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=100, bg=CP[theme][10],
+                                           highlightthickness=0)
+                    label = Label(each_sub_frame, text=i)
+                    label.place(x=0, y=0)
+                    self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                    y_coord = y_coord + 100
+                    self.sub_frame.append(each_sub_frame)
+
+                self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
+                self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
+                self.view_canvas.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
+                self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
+                self.search_frame.place(x=margin[0], y=margin[1])
+                self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+            else:
+                self.place_forget()
+
+        def onFrameConfigure(self, event):
+            self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
 
     class AddAdmin(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
@@ -963,7 +1411,15 @@ class SentsGui(Tk):
 
             self.place_forget()
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
             self.configure(width=main_layout[0], height=main_layout[1])
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
@@ -1133,7 +1589,15 @@ class SentsGui(Tk):
 
             self.place_forget()
 
-        def update_res(self, width, height, font_size, margin_width, margin_height, main_layout, canvas_index):
+        def update_res(self, root):
+            width = root.winfo_width()
+            height = root.winfo_height()
+            font_size = root.font_size
+            margin_width = root.margin_width
+            margin_height = root.margin_height
+            main_layout = root.main_layout
+            canvas_index = root.canvas_index
+
             self.configure(width=main_layout[0], height=main_layout[1])
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
@@ -1344,11 +1808,9 @@ class SentsGui(Tk):
             self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
 
             if self.canvas_index == 0:
-                self.login_canvas.update_res(self.winfo_width(), self.winfo_height(), self.font_size)
+                self.login_canvas.update_res(self)
             elif 1 <= self.canvas_index <= 5:
-                self.main_canvas.update_res(self.winfo_width(), self.winfo_height(), self.font_size,
-                                            self.margin_width, self.margin_height, self.main_layout,
-                                            self.canvas_index)
+                self.main_canvas.update_res(self)
         self.after(10, self.auto_resize)
 
     def set_canvas_index(self, ci):
@@ -1356,11 +1818,30 @@ class SentsGui(Tk):
 
     def set_canvas(self):
         if self.canvas_index == 0:
-            self.login_canvas.update_res(self.winfo_width(), self.winfo_height(), self.font_size)
+            self.login_canvas.update_res(self)
         elif 1 <= self.canvas_index <= 5:
-            self.main_canvas.update_res(self.winfo_width(), self.winfo_height(), self.font_size,
-                                        self.margin_width, self.margin_height, self.main_layout,
-                                        self.canvas_index)
+            self.main_canvas.update_res(self)
+
+    def _on_mousewheel(self, event, frame, margin):
+        x, y = self.winfo_pointerx() - self.winfo_rootx(), self.winfo_pointery() - self.winfo_rooty()
+        if self.canvas_index == 1:
+            x_right = frame.winfo_width() + margin[0]
+            y_top = margin[1] + frame.winfo_height() * (1 - margin[2])
+            y_bot = frame.winfo_height() + margin[1] + frame.winfo_height() * (1 - margin[2] + 0.007)
+            # Additional 0.007 is due to the border width of the canvas
+            # print("Coord: " , x, y, "\nMin : ", margin[0], y_top, "\nMax : ", x_right, y_bot)
+            if margin[0] <= x <= x_right and y_top <= y <= y_bot:
+                frame.view_canvas.yview_scroll(round(-1 * (event.delta / 120)), "units")
+                print("Scroll Driver")
+        elif self.canvas_index == 3:
+            x_right = frame.winfo_width() + margin[0]
+            y_top = margin[1] + frame.winfo_height() * (1 - margin[2])
+            y_bot = frame.winfo_height() + margin[1] + frame.winfo_height() * (1 - margin[2] + 0.007)
+            # Additional 0.007 is due to the border width of the canvas
+            # print("Coord: " , x, y, "\nMin : ", margin[0], y_top, "\nMax : ", x_right, y_bot)
+            if margin[0] <= x <= x_right and y_top <= y <= y_bot:
+                frame.view_canvas.yview_scroll(round(-1 * (event.delta / 120)), "units")
+                print("Scroll Admin")
 
 
 def main():
