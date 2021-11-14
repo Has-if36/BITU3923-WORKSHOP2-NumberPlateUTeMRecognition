@@ -311,6 +311,7 @@ class SentsGui:
         self.margin_width = round(10 / 100 * self.width)
         self.margin_height = round(10 / 100 * self.height)
         self.main_layout = [round(self.width - 2 * self.margin_width), round(self.height - 2 * self.margin_height)]
+        self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
         # print(self.main_layout[1])
 
         self.today = datetime.date.today()
@@ -333,8 +334,6 @@ class SentsGui:
 
         self.canvas.place(x=self.root.winfo_width(), y=self.root.winfo_width())
 
-        self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
-
         self.frame_unavailable = Image.new('RGB', (round(50 / 100 * self.main_layout[0]),
                                                    round(40 / 100 * self.main_layout[1])),
                                            color=self.color_unavailable[0])  # set index 0, it's okay bcos this is prep
@@ -345,7 +344,7 @@ class SentsGui:
         w, h = draw.textsize(self.msg, font=self.font)
         draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                    round(self.frame_unavailable.height / 2 - h / 2)),
-                  self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                  self.msg, "#EEEEEE", font=self.font, align=CENTER)
         self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
         self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
 
@@ -357,7 +356,7 @@ class SentsGui:
         w, h = draw.textsize(msg_preview, font=self.font)
         draw.text((round((no_preview.width / 2 - w / 2)),
                    round(no_preview.height / 2 - h / 2)),
-                  msg_preview, "#EEEEEE", font=font_preview, anchor=CENTER, align=CENTER)
+                  msg_preview, "#EEEEEE", font=font_preview, align=CENTER)
         self.no_preview = ImageTk.PhotoImage(no_preview)
 
         self.preview_tk = self.no_preview
@@ -694,7 +693,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, align=CENTER)
 
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
@@ -708,7 +707,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, align=CENTER)
 
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
@@ -733,7 +732,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, align=CENTER)
 
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
@@ -749,7 +748,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, self.font_color[self.theme], font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, self.font_color[self.theme], font=self.font, align=CENTER)
 
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
@@ -1490,7 +1489,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
 
@@ -1503,7 +1502,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
 
@@ -1526,7 +1525,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_enter.configure(image=self.frame_enter_tk)
 
@@ -1539,7 +1538,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
                 self.label_exit.configure(image=self.frame_exit_tk)
 
@@ -1576,7 +1575,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_exit = self.frame_unavailable
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
@@ -1601,7 +1600,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_exit = self.frame_unavailable
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
@@ -1632,7 +1631,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_enter = self.frame_unavailable
                 self.frame_enter_tk = ImageTk.PhotoImage(self.frame_unavailable)
             """
@@ -1660,7 +1659,7 @@ class SentsGui:
                 w, h = draw.textsize(self.msg, font=self.font)
                 draw.text((round((self.frame_unavailable.width / 2 - w / 2)),
                            round(self.frame_unavailable.height / 2 - h / 2)),
-                          self.msg, "#EEEEEE", font=self.font, anchor=CENTER, align=CENTER)
+                          self.msg, "#EEEEEE", font=self.font, align=CENTER)
                 self.frame_exit = self.frame_unavailable
                 self.frame_exit_tk = ImageTk.PhotoImage(self.frame_unavailable)
             """

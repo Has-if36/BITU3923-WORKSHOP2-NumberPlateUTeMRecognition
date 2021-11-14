@@ -2,8 +2,6 @@ from tkinter import *
 import tkinter.ttk as ttk
 import tkinter.filedialog as filedialog
 import tkcalendar as tkcalendar
-import tkcalendar as cal
-import cv2
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import urllib.request
 import ssl
@@ -704,7 +702,7 @@ class SentsGui(Tk):
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
                        round(no_img_driver.height / 2 - h / 2)),
-                      no_img_driver_text, "#EEEEEE", font=no_img_driver_font, anchor=CENTER, align=CENTER)
+                      no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
             self.driver_img_tk = ImageTk.PhotoImage(no_img_driver)
 
             no_img_plate_text = "No Plate Number\nImage Uploaded"
@@ -713,7 +711,7 @@ class SentsGui(Tk):
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
                        round(no_img_driver.height / 2 - h / 2)),
-                      no_img_plate_text, "#EEEEEE", font=no_img_plate_font, anchor=CENTER, align=CENTER)
+                      no_img_plate_text, "#EEEEEE", font=no_img_plate_font, align=CENTER)
             self.plate_img_tk = ImageTk.PhotoImage(no_img_plate)
 
             self.driver_img_label = Label(self, image=self.driver_img_tk, bg=CP[theme][2])
@@ -896,7 +894,7 @@ class SentsGui(Tk):
                 w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
                 draw.text((round((no_img_driver.width / 2 - w / 2)),
                            round(no_img_driver.height / 2 - h / 2)),
-                          no_img_driver_text, "#EEEEEE", font=no_img_driver_font, anchor=CENTER, align=CENTER)
+                          no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
                 self.driver_img_tk = ImageTk.PhotoImage(no_img_driver)
 
             if self.plate_img_path:
@@ -914,7 +912,7 @@ class SentsGui(Tk):
                 w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
                 draw.text((round((no_img_plate.width / 2 - w / 2)),
                            round(no_img_plate.height / 2 - h / 2)),
-                          no_img_plate_text, "#EEEEEE", font=no_img_plate_font, anchor=CENTER, align=CENTER)
+                          no_img_plate_text, "#EEEEEE", font=no_img_plate_font, align=CENTER)
                 self.plate_img_tk = ImageTk.PhotoImage(no_img_plate)
 
             self.driver_img_label.configure(image=self.driver_img_tk)
@@ -1071,7 +1069,7 @@ class SentsGui(Tk):
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
                        round(no_img_driver.height / 2 - h / 2)),
-                      no_img_driver_text, "#EEEEEE", font=no_img_driver_font, anchor=CENTER, align=CENTER)
+                      no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
             self.driver_img_tk = ImageTk.PhotoImage(no_img_driver)
 
             no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
@@ -1082,7 +1080,7 @@ class SentsGui(Tk):
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_plate.width / 2 - w / 2)),
                        round(no_img_plate.height / 2 - h / 2)),
-                      no_img_plate_text, "#EEEEEE", font=no_img_plate_font, anchor=CENTER, align=CENTER)
+                      no_img_plate_text, "#EEEEEE", font=no_img_plate_font, align=CENTER)
             self.plate_img_tk = ImageTk.PhotoImage(no_img_plate)
 
             self.driver_img_label.configure(image=self.driver_img_tk)
