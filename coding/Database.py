@@ -1,13 +1,17 @@
 import mysql.connector
 
+"""Search Tag
+    
+    select_user
+"""
 
 class Database:
     def __init__(self):
         try:
             self.db = mysql.connector.connect(
                 ### default ###
-                host = "localhost",
-                user = "root"
+                host="localhost",
+                user="root"
             )
             self.connection = True
             self.cursor = self.db.cursor()
@@ -16,7 +20,7 @@ class Database:
             self.connection = False
             print("Failed to Connect")
 
-    def __init__(self, host, user, password):
+    """def __init__(self, host, user, password):
         try:
             self.db = mysql.connector.connect(
                 host=host,
@@ -28,12 +32,12 @@ class Database:
             self.connection_result()
         except:
             self.connection = False
-            print("Failed to Connect")
+            print("Failed to Connect")"""
 
     def connection_result(self):
         status = str(self.db)
         status = status.split(" object at ")[0].replace("<", "")
-        if status == "mysql.connector.connection_cext.CMySQLConnection":
+        if status == "mysql.connector.connection.MySQLConnection":
             print("Successfully Connect")
         else:
             print("Failed to Connect")
@@ -89,14 +93,14 @@ class Database:
 
         print(status)
 
-    def select_user(self):
+    """def select_user(self):
         # Fetch User
         self.cursor.execute("SELECT * FROM plate_num_rec.user")
         result = self.cursor.fetchall()
         staff_list = result
 
         for staff in staff_list:
-            print(staff)
+            print(staff)"""
 
     def select_user(self, username):
         username = username.lower()
@@ -106,10 +110,19 @@ class Database:
         result = self.cursor.fetchall()
         staff_list = result
 
+        rangeloop = [1, 2, 3, 4, 5]
+        staff_array = []
         if staff_list:
+            nom = 0
+            nom2 = 0
             for staff in staff_list:
-                print(staff)
-            return staff_list[0]
+                for num in rangeloop:
+                    staff_temp = staff
+                    nom +=1
+                staff_array.append(staff_temp)
+                nom += 1
+            #print("Test new array = ",staff_array)
+            return staff_array
         else:
             print("Username does not Exist")
             return
@@ -331,18 +344,18 @@ class Database:
         except:
             if status == "":
                 status = "Car OWner Failed to Remove: \n\tPlate Number: " + plate_num + \
-                     "\n\tName\t\t: " + name + \
-                     "\n\tStatus\t\t: " + owner_status + \
-                     "\n\tID\t\t\t: " + id + \
-                     "\n\tCar Brand\t: " + car_brand + \
-                     "\n\tCar Brand\t: " + car_model
+                         "\n\tName\t\t: " + name + \
+                         "\n\tStatus\t\t: " + owner_status + \
+                         "\n\tID\t\t\t: " + id + \
+                         "\n\tCar Brand\t: " + car_brand + \
+                         "\n\tCar Brand\t: " + car_model
 
         print(status)
 
 
-db = Database("localhost", "pnrAdmin", "pnrAdmin")
+db = Database()
 # db.insert_user('abu', 'bakar', 'admin', 'ali')
-# db.select_user("ali")
+db.select_user("abu")
 # db.edit_user(2, "ali", 4)
 # db.remove_user(2)
 # db.insert_car_owner('ABC1234', 'chin', 'student', 'b1234', 'cheng', 'hanji')
