@@ -2,6 +2,8 @@ from tkinter import *
 import tkinter.ttk as ttk
 import tkinter.filedialog as filedialog
 import tkcalendar as tkcalendar
+import tkcalendar as cal
+import cv2
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import urllib.request
 import ssl
@@ -12,6 +14,10 @@ import sys
 import wmi
 import re
 import math
+from Database import Database
+import numpy as np
+
+db = Database()
 
 MIN_WIDTH = 853
 MIN_HEIGHT = 480
@@ -20,7 +26,10 @@ CP = [['#E1D89F', 'black', '#EEEEEE', None, None, '#EEB76B', 'black', '#EEEEEE',
       ['#2B2B2B', '#EEEEEE', '#5C527F', None, None, '#261C2C', '#EEEEEE', '#5C527F', '#5C527F', '#EEEEEE', '#FFD369']]
 
 """
-    Search Tag: Database Connection
+    Search Tag: 
+    
+    - Database Connection
+    - USER LIST
 """
 
 
@@ -82,6 +91,7 @@ class SentsGui(Tk):
             self.login_user_field.update()
             self.login_pass_field.update()
 
+            # Login Button
             font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
             self.login_btn = Button(self.login_user_frame, bg=CP[theme][5], fg=CP[theme][6],
                                     activebackground=CP[theme][8], activeforeground=CP[theme][9], border=1,
@@ -108,15 +118,15 @@ class SentsGui(Tk):
                 self.place(x=0, y=0)
 
         def button_event(self):
-            """
-            # Input
-                self.login_user_strvar.get()
-                self.login_pass_strvar.get()
-            """
 
-            if self.login_user_strvar.get() and self.login_pass_strvar.get():
+            # Input
+            getuser = self.login_user_strvar.get()
+            getpass = self.login_pass_strvar.get()
+
+            if getuser and getpass:
                 # Database Connection
-                match_account = False
+                print(getuser)
+                match_account = True
                 privilege = None
 
                 """
@@ -211,6 +221,8 @@ class SentsGui(Tk):
             super().__init__(width=screen_width, height=screen_height, bg=CP[theme][0], highlightthickness=0)
             self.canvas_index = canvas_index
             self.root = root
+
+            print("LOGIN FRAME")
 
             # Need Comment out later
             self.place(x=width, y=height)
@@ -467,6 +479,8 @@ class SentsGui(Tk):
 
     class ViewDriver(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
+            print("AFTER LOGIN")
+
             self.mar_search = 0.92
             self.root = root
             super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
@@ -633,17 +647,31 @@ class SentsGui(Tk):
             self.driver_list.clear()
             print("Search Driver")
             # Test
-            if self.search_str.get() == "test":
-                self.driver_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            """
+
+            """            
             Input
                 self.search_str
                 self.search_by_str
                 self.search_sort_str
                 self.search_filter_str
             """
-
             # Database Connection
+
+            search_input = self.search_str.get()
+
+            print("Test = " + search_input)
+            user_from_db = db.select_user(search_input)
+            # print(user_from_db)
+
+            """USER LIST"""
+            if user_from_db:
+                user_list = []
+                for user_info in user_from_db:
+                    user_temp = user_info
+                    user_list.append(user_temp)
+                    """user_list is a 2D list"""
+            else:
+                print("Username does not Exist")
 
             """
             Output
@@ -664,7 +692,7 @@ class SentsGui(Tk):
                     print(driver)
                     each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=100, bg=CP[theme][10],
                                            highlightthickness=0)
-                    label = Label(each_sub_frame, text=i)
+                    label = Label(each_sub_frame, text="contoh")
                     label.place(x=0, y=0)
                     self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
                     y_coord = y_coord + 100
@@ -1064,7 +1092,7 @@ class SentsGui(Tk):
             no_img_driver = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                               round(percent / 100 * main_layout[1])), color='#171010')
             no_img_driver_text = "No Driver\nImage Uploaded"
-            no_img_driver_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
+            no_img_driver_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_driver)
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -1075,7 +1103,7 @@ class SentsGui(Tk):
             no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                              round(percent / 100 * main_layout[1])), color='#171010')
             no_img_plate_text = "No Plate Number\nImage Uploaded"
-            no_img_plate_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
+            no_img_plate_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_plate)
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_plate.width / 2 - w / 2)),
