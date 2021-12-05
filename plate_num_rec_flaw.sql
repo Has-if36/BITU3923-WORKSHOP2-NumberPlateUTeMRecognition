@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 05, 2021 at 06:14 AM
+-- Generation Time: Dec 02, 2021 at 09:44 AM
 -- Server version: 10.4.14-MariaDB
 -- PHP Version: 7.2.34
 
@@ -28,8 +28,8 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `admin` (
-  `staffID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
+  `StaffID` varchar(50) NOT NULL,
+  `Name` varchar(50) NOT NULL,
   `username` varchar(50) NOT NULL,
   `password` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -41,10 +41,10 @@ CREATE TABLE `admin` (
 --
 
 CREATE TABLE `car_info` (
-  `plateNum` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `carBrand` varchar(50) NOT NULL,
-  `roadTaxExpiry` date NOT NULL
+  `PlateNum` varchar(50) NOT NULL,
+  `Name` varchar(50) NOT NULL,
+  `CarBrand` varchar(50) NOT NULL,
+  `RoadTaxExpiry` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -54,12 +54,12 @@ CREATE TABLE `car_info` (
 --
 
 CREATE TABLE `officer_info` (
-  `officerID` varchar(50) NOT NULL,
-  `officerName` varchar(50) NOT NULL,
+  `OfficerID` varchar(50) NOT NULL,
+  `OfficerName` varchar(50) NOT NULL,
   `username` varchar(50) NOT NULL,
   `password` int(50) NOT NULL,
-  `rank` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL
+  `Rank` varchar(50) NOT NULL,
+  `PlateNum` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -69,11 +69,11 @@ CREATE TABLE `officer_info` (
 --
 
 CREATE TABLE `staff_info` (
-  `staffID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `status` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL,
-  `vaccinationStatus` varchar(50) NOT NULL
+  `StaffID` varchar(50) NOT NULL,
+  `Name` varchar(50) NOT NULL,
+  `Status` varchar(50) NOT NULL,
+  `PlateNum` varchar(50) NOT NULL,
+  `VaccinationStatus` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -83,12 +83,12 @@ CREATE TABLE `staff_info` (
 --
 
 CREATE TABLE `student_info` (
-  `studentID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `year` int(5) NOT NULL,
-  `hostelStatus` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL,
-  `vaccinationStatus` varchar(50) NOT NULL
+  `StudentID` varchar(50) NOT NULL,
+  `Name` varchar(50) NOT NULL,
+  `Year` int(5) NOT NULL,
+  `HostelStatus` varchar(50) NOT NULL,
+  `PlateNum` varchar(50) NOT NULL,
+  `VaccinationStatus` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -99,31 +99,31 @@ CREATE TABLE `student_info` (
 -- Indexes for table `admin`
 --
 ALTER TABLE `admin`
-  ADD PRIMARY KEY (`staffID`);
+  ADD PRIMARY KEY (`StaffID`);
 
 --
 -- Indexes for table `car_info`
 --
 ALTER TABLE `car_info`
-  ADD PRIMARY KEY (`plateNum`);
+  ADD PRIMARY KEY (`PlateNum`);
 
 --
 -- Indexes for table `officer_info`
 --
 ALTER TABLE `officer_info`
-  ADD PRIMARY KEY (`officerID`);
+  ADD PRIMARY KEY (`OfficerID`);
 
 --
 -- Indexes for table `staff_info`
 --
 ALTER TABLE `staff_info`
-  ADD PRIMARY KEY (`staffID`);
+  ADD PRIMARY KEY (`StaffID`);
 
 --
 -- Indexes for table `student_info`
 --
 ALTER TABLE `student_info`
-  ADD PRIMARY KEY (`studentID`);
+  ADD PRIMARY KEY (`StudentID`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

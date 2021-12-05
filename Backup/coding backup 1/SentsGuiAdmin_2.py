@@ -292,11 +292,8 @@ class SentsGui(Tk):
             self.place(x=width, y=height)
             self.server_setting = None
 
-            self.ori_logo = Image.open("./logo_dark_mode.png")
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.ori_logo = Image.open("./tom.png")
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label = Label(self, image=self.logo_tk, border=0, bg=CP[theme][0])
@@ -425,9 +422,7 @@ class SentsGui(Tk):
 
             self.place(x=0, y=0)
             # self.configure(width=width, height=height)
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label.configure(image=self.logo_tk)
@@ -765,7 +760,6 @@ class SentsGui(Tk):
             self.mar_search = 0.92
             self.root = root
             self.borderwidth = 1
-            self.prof_per_frame = 3
             super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                              bg=CP[theme][0], highlightthickness=0)
             self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
@@ -903,31 +897,28 @@ class SentsGui(Tk):
 
                 self.view_canvas.update()
                 y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
                 for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
                     frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
                     self.view_canvas.coords(self.canvas_item[i], (0, y_coord))
                     y_coord = y_coord + frame_height
 
-                remainder = (frame_height - (self.borderwidth * 2)) * self.prof_per_frame - \
-                            self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 2 * self.prof_per_frame)
+                remainder = (frame_height - (self.borderwidth * 2)) * 4 - self.view_canvas.winfo_height()
+                remainder = remainder + (self.borderwidth * 8)
                 self.view_canvas.configure(width=main_layout[0],
                                            height=round(self.mar_search * main_layout[1]) + remainder)
 
                 self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
                                         y=root.winfo_height() - (
                                                 margin_height - self.num_pg_label.winfo_height() / 2))
-                if self.page_index >= len(self.sub_frame):
-                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
-                                            self.prev_label.winfo_width() * 1.5,
-                                          y=(root.winfo_height() - margin_height) +
-                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
-                if self.page_index < len(self.sub_frame):
-                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                          y=(root.winfo_height() - margin_height) +
-                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
+                self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                        self.prev_label.winfo_width() * 1.5,
+                                      y=(root.winfo_height() - margin_height) +
+                                        (margin_height / 2 - self.next_label.winfo_height() / 2))
+                self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                        self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                      y=(root.winfo_height() - margin_height) +
+                                        (margin_height / 2 - self.next_label.winfo_height() / 2))
             else:
                 self.place(x=width, y=height)
                 self.num_pg_label.place_forget()
@@ -997,13 +988,12 @@ class SentsGui(Tk):
         def search_driver(self, margin, root):
             main_layout = root.main_layout
             theme = root.theme
-            self.driver_list = []
+            self.driver_list.clear()
             print("Search Admin")
             # Test
-            """
             if self.search_str.get() == "test":
                 self.driver_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            
+            """
             Input
                 self.search_str
                 self.search_by_str
@@ -1014,11 +1004,22 @@ class SentsGui(Tk):
             # Database Connection
             search_input = self.search_str.get()
 
-            # print("Test = " + search_input)
-            # db.select_user(search_input)
-            # db.select_car_owner(search_input)
-            self.driver_list = db.select_car_owner(search_input)
+            print("Test = " + search_input)
+            user_from_db = db.select_user(search_input)
             # print(user_from_db)
+
+            """USER LIST"""
+            if user_from_db:
+                user_list = []
+                for user_info in user_from_db:
+                    user_temp = user_info
+                    user_list.append(user_temp)
+                    """user_list is a 2D list"""
+            else:
+                print("Username does not Exist")
+
+            for staff in user_list:
+                print(staff)
 
             """
             Output
@@ -1032,12 +1033,11 @@ class SentsGui(Tk):
             """
 
             # Result Search
-            # print(self.driver_list)
             if self.driver_list:
                 self.page_index = 1
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
                 y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
                 # print(self.view_canvas.winfo_height(), frame_height)
                 temp_sub_frame = []
                 self.canvas_item = []
@@ -1047,28 +1047,23 @@ class SentsGui(Tk):
                     print("\t", driver)
                     each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(), height=frame_height,
                                            bg=CP[theme][5], highlightthickness=self.borderwidth)
-                    label = Label(each_sub_frame, text=driver[0])
+                    label = Label(each_sub_frame, text=i)
                     label.place(x=0, y=0)
-                    if i < self.prof_per_frame:
+                    if i < 4:
                         canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
                         self.canvas_item.append(canvas_item)
                     y_coord = y_coord + frame_height
 
-                    if i % self.prof_per_frame < self.prof_per_frame - 1:
+                    if i % 4 < 3:
                         temp_sub_frame.append(each_sub_frame)
                         if i == len(self.driver_list) - 1:
-                            remainder = 3 - (i % self.prof_per_frame)
+                            remainder = 3 - (i % 4)
 
                             for j in range(0, remainder):
                                 each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(),
                                                        height=frame_height,
                                                        bg=CP[theme][5], highlightthickness=self.borderwidth)
                                 temp_sub_frame.append(each_sub_frame)
-
-                                canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame,
-                                                                             anchor=NW)
-                                self.canvas_item.append(canvas_item)
-                                y_coord = y_coord + frame_height
                             self.sub_frame.append(temp_sub_frame)
                     else:
                         temp_sub_frame.append(each_sub_frame)
@@ -1078,9 +1073,8 @@ class SentsGui(Tk):
                 self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
 
-                remainder = self.view_canvas.winfo_height() - (frame_height - (self.borderwidth * 2)) * \
-                            self.prof_per_frame
-                remainder = remainder - (self.borderwidth * 2 * self.prof_per_frame)
+                remainder = self.view_canvas.winfo_height() - (frame_height - (self.borderwidth * 2)) * 4
+                remainder = remainder - (self.borderwidth * 8)
 
                 self.view_canvas.configure(width=main_layout[0], height=self.view_canvas.winfo_height() - remainder)
                 self.view_canvas.update()
@@ -1107,17 +1101,15 @@ class SentsGui(Tk):
                                         self.prev_label.winfo_width() * 1.5,
                                       y=(root.winfo_height() - margin[1]) +
                                         (margin[1] / 2 - self.next_label.winfo_height() / 2))"""
-                if len(self.sub_frame) > 1:
-                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                          y=(root.winfo_height() - margin[1]) +
-                                            (margin[1] / 2 - self.next_label.winfo_height() / 2))
+                self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                        self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                      y=(root.winfo_height() - margin[1]) +
+                                        (margin[1] / 2 - self.next_label.winfo_height() / 2))
             else:
                 self.place_forget()
                 self.num_pg_label.place_forget()
                 self.prev_label.place_forget()
                 self.next_label.place_forget()
-                print("Empty Search Result")
 
         def onFrameConfigure(self, event):
             self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
@@ -1134,7 +1126,7 @@ class SentsGui(Tk):
                 self.page_index = self.page_index - 1
 
                 self.view_canvas.update()
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
                 y_coord = 0
                 self.view_canvas.delete('all')
                 self.canvas_item = []
@@ -1167,7 +1159,7 @@ class SentsGui(Tk):
                 self.page_index = self.page_index + 1
 
                 self.view_canvas.update()
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
                 y_coord = 0
                 self.view_canvas.delete('all')
                 self.canvas_item = []

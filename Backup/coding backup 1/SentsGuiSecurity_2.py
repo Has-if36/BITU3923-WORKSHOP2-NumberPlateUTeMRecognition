@@ -88,13 +88,8 @@ class SentsGui:
             self.root_2 = root
             self.place(x=width, y=height)
 
-            if root.theme == 1:
-                self.ori_logo = Image.open("./logo_dark_mode.png")
-            else:
-                self.ori_logo = Image.open("./logo_light_mode.png")
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.ori_logo = Image.open("./tom.png")
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label = Label(self, image=self.logo_tk, border=0, bg=CP[theme][0])
@@ -206,9 +201,7 @@ class SentsGui:
         def update_res(self, width, height, font_size):
             self.place(x=0, y=0)
             # self.configure(width=width, height=height)
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label.configure(image=self.logo_tk)
@@ -264,18 +257,8 @@ class SentsGui:
             self.update()
 
         def change_theme(self, theme):
-            if theme == 1:
-                self.ori_logo = Image.open("./logo_dark_mode.png")
-            else:
-                self.ori_logo = Image.open("./logo_light_mode.png")
-            logo_height = round(25 / 100 * self.root.winfo_height())
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
-                                                     Image.ANTIALIAS)
-            self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
-
             self.configure(bg=CP[theme][0])
-            self.login_logo_label.configure(image=self.logo_tk, bg=CP[theme][0])
+            self.login_logo_label.configure(bg=CP[theme][0])
             self.login_title_text.configure(bg=CP[theme][0], fg=CP[theme][1])
             self.login_user_frame.configure(bg=CP[theme][0])
             self.login_user_text.configure(bg=CP[theme][0], fg=CP[theme][1])

@@ -2,6 +2,8 @@ from tkinter import *
 import tkinter.ttk as ttk
 import tkinter.filedialog as filedialog
 import tkcalendar as tkcalendar
+import tkcalendar as cal
+import cv2
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import urllib.request
 import ssl
@@ -13,290 +15,35 @@ import wmi
 import re
 import math
 from Database import Database
+import numpy as np
+
+db = Database()
 
 MIN_WIDTH = 853
 MIN_HEIGHT = 480
 # [bg, fg, selector, actBg, actFg, bg2, fg2, selector2, actBg2, actFg2, fontColor2]
-CP = [['#E1D89F', '#171010', '#EEEEEE', "#D89216", None,
-       '#EEB76B', '#DA0037', '#EEEEEE', '#E1D89F', 'black',
-       '#6E85B2', 'black', None, '#5C527F', 'black'],
-      ['#2B2B2B', '#EEEEEE', '#5C527F', "#423F3E", None,
-       '#261C2C', '#FFD369', '#5C527F', '#5C527F', '#EEEEEE',
-       '#6E85B2', 'black', None, '#5C527F', 'black']]
-server_setting = ["localhost", None, None, None]
-db = None
+CP = [['#E1D89F', 'black', '#EEEEEE', None, None, '#EEB76B', 'black', '#EEEEEE', '#E1D89F', 'black', '#FFD369'],
+      ['#2B2B2B', '#EEEEEE', '#5C527F', None, None, '#261C2C', '#EEEEEE', '#5C527F', '#5C527F', '#EEEEEE', '#FFD369']]
 
 """
-    Search Tag: Database Connection
+    Search Tag: 
+    
+    - Database Connection
+    - USER LIST
 """
 
 
 class SentsGui(Tk):
     class LoginCanvas(Canvas):
-        class Setting(Toplevel):
-            def __init__(self, root):
-                super().__init__(root)
-                title = "Server Setting "
-                width = 514  # round(self.root.winfo_width() / 2)
-                height = 318  # round(self.root.winfo_height() / 1.2) # 530
-                # print(width, height)
-                x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
-                y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
-                gap = 50
-                entry_length = 20
-
-                self.title(title)
-                self.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-                # self.attributes('-topmost', True)
-                self.grab_set()
-                # self.grab_release()  # After Finish Setting
-                self.resizable(False, False)
-
-                self.main_canvas = Canvas(self, highlightthickness=0, bg=CP[root.theme][5], width=width, height=height)
-                self.main_canvas.place(x=0, y=0)
-                self.main_canvas.update()
-
-                self.server_frame = Frame(self.main_canvas, bg=CP[root.theme][5])
-                font_setting = "Calibri " + str(round(root.font_size * 1)) + " bold"
-                self.server_label = Label(self.main_canvas, font=font_setting, text="Server Setting",
-                                          bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.server_label.place(x=0, y=0)
-                self.server_label.update()
-
-                font_setting = "Calibri " + str(round(root.font_size * 0.95))
-                self.host_label = Label(self.server_frame, font=font_setting, text="IP Address : ",
-                                        bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.user_label = Label(self.server_frame, font=font_setting, text="User\t  : ",
-                                        bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.pass_label = Label(self.server_frame, font=font_setting, text="Password\t  : ",
-                                        bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.server_label.place(x=0, y=0)
-                self.host_label.place(x=0, y=0)
-                self.user_label.place(x=0, y=0)
-                self.pass_label.place(x=0, y=0)
-                self.server_label.update()
-                self.host_label.update()
-                self.user_label.update()
-                self.pass_label.update()
-                self.server_label.place(x=self.main_canvas.winfo_width() / 2 - self.server_label.winfo_width() / 2,
-                                        y=self.main_canvas.winfo_width() / 32)
-                self.server_label.update()
-                y_coord = 0
-                self.host_label.place(x=0, y=y_coord)
-                y_coord = y_coord + gap
-                self.user_label.place(x=0, y=y_coord)
-                y_coord = y_coord + gap
-                self.pass_label.place(x=0, y=y_coord)
-                self.host_label.update()
-                self.user_label.update()
-                self.pass_label.update()
-
-                self.host_str = StringVar()
-                self.user_str = StringVar()
-                self.pass_str = StringVar()
-
-                with open('setting.txt', 'r') as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        if line.find("host=") == 0:
-                            server_setting[0] = line.split('=')[1].replace("\n", "")
-                            self.host_str.set(server_setting[0])
-                            if server_setting[0] == "":
-                                server_setting[0] = None
-                        elif line.find("user=") == 0:
-                            server_setting[2] = line.split('=')[1].replace("\n", "")
-                            self.user_str.set(server_setting[2])
-                            if server_setting[2] == "":
-                                server_setting[2] = None
-                        elif line.find("pass=") == 0:
-                            server_setting[3] = line.split('=')[1].replace("\n", "")
-                            self.pass_str.set(server_setting[3])
-                            if server_setting[3] == "":
-                                server_setting[3] = None
-
-                font_setting = "Calibri " + str(round(math.pow(root.font_size, 0.87)))
-                ttk.Style().configure('pad.TEntry', padding='2 1 2 1')
-                self.host_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.host_str,
-                                            font=font_setting, style='pad.TEntry')
-                self.user_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.user_str,
-                                            font=font_setting, style='pad.TEntry')
-                self.pass_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.pass_str,
-                                            font=font_setting, style='pad.TEntry')
-                self.host_entry.place(x=0, y=0)
-                self.user_entry.place(x=0, y=0)
-                self.pass_entry.place(x=0, y=0)
-                self.host_entry.update()
-                self.user_entry.update()
-                self.pass_entry.update()
-                y_coord = 0
-                self.host_entry.place(x=self.host_label.winfo_width(),
-                                      y=y_coord +
-                                        (self.host_label.winfo_height() / 2 - self.host_entry.winfo_height() / 2))
-                y_coord = y_coord + gap
-                self.user_entry.place(x=self.user_label.winfo_width(),
-                                      y=y_coord +
-                                        (self.user_label.winfo_height() / 2 - self.user_entry.winfo_height() / 2))
-                y_coord = y_coord + gap
-                self.pass_entry.place(x=self.pass_label.winfo_width(),
-                                      y=y_coord +
-                                        (self.pass_label.winfo_height() / 2 - self.pass_entry.winfo_height() / 2))
-                self.host_entry.update()
-                self.user_entry.update()
-                self.pass_entry.update()
-
-                font_setting = "Calibri " + str(round(root.font_size * 0.65))
-                self.host_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
-                                           bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                           activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                           command=lambda a=1, b=root: self.btn_event(a, b))
-                self.user_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
-                                           bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                           activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                           command=lambda a=3, b=root: self.btn_event(a, b))
-                self.pass_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
-                                           bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                           activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                           command=lambda a=4, b=root: self.btn_event(a, b))
-                self.host_def_btn.place(x=0, y=0)
-                self.user_def_btn.place(x=0, y=0)
-                self.pass_def_btn.place(x=0, y=0)
-                self.host_def_btn.update()
-                self.user_def_btn.update()
-                self.pass_def_btn.update()
-                y_coord = 0
-                self.host_def_btn.place(x=self.host_label.winfo_width() + self.host_entry.winfo_width() + 10,
-                                        y=y_coord +
-                                          (self.host_label.winfo_height() / 2 - self.host_def_btn.winfo_height() / 2))
-                y_coord = y_coord + gap
-                self.user_def_btn.place(x=self.user_label.winfo_width() + self.user_entry.winfo_width() + 10,
-                                        y=y_coord +
-                                          (self.host_label.winfo_height() / 2 - self.user_def_btn.winfo_height() / 2))
-                y_coord = y_coord + gap
-                self.pass_def_btn.place(x=self.pass_label.winfo_width() + self.pass_entry.winfo_width() + 10,
-                                        y=y_coord +
-                                          (self.host_label.winfo_height() / 2 - self.pass_def_btn.winfo_height() / 2))
-                # y_coord = y_coord + gap * 1.1
-                self.host_def_btn.update()
-                self.user_def_btn.update()
-                self.pass_def_btn.update()
-
-                font_setting = "Calibri " + str(round(root.font_size * 0.65))
-                self.stats_lbl = Label(self.server_frame, font=font_setting, text="Failed to Connect",
-                                       bg=CP[root.theme][5], fg=CP[root.theme][5])
-                self.stats_lbl.place(x=width, y=height)
-                self.stats_lbl.update()
-                y_coord = y_coord + self.pass_label.winfo_height() + 3
-                self.stats_lbl.place(x=10, y=y_coord)
-                self.stats_lbl.update()
-                y_coord = y_coord + self.stats_lbl.winfo_height() + 10
-
-                self.server_frame.configure(width=self.host_label.winfo_width() + self.host_entry.winfo_width() + 10 +
-                                                  self.host_def_btn.winfo_width(),
-                                            height=y_coord)
-                self.server_frame.place(x=width, y=height)
-                self.server_frame.update()
-
-                self.ok_btn = Button(self.server_frame, font=font_setting, text="Ok", width=8,
-                                     bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                     activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                     command=lambda a=5, b=root: self.btn_event(a, b))
-                self.conn_btn = Button(self.server_frame, font=font_setting, text="Test", width=8,
-                                       bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                       activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                       command=lambda a=6, b=root: self.btn_event(a, b))
-                self.cancel_btn = Button(self.server_frame, font=font_setting, text="Cancel", width=8,
-                                         bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                         activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                         command=lambda a=7, b=root: self.btn_event(a, b))
-                self.ok_btn.place(x=width, y=height)
-                self.conn_btn.place(x=width, y=height)
-                self.cancel_btn.place(x=width, y=height)
-                self.ok_btn.update()
-                self.conn_btn.update()
-                self.cancel_btn.update()
-                self.ok_btn.place(x=self.server_frame.winfo_width() / 2 - self.ok_btn.winfo_width() - 15 -
-                                    self.conn_btn.winfo_width() / 2,
-                                  y=y_coord)
-                self.conn_btn.place(x=self.server_frame.winfo_width() / 2 - self.conn_btn.winfo_width() / 2,
-                                    y=y_coord)
-                self.cancel_btn.place(x=self.server_frame.winfo_width() / 2 + 15 + self.conn_btn.winfo_width() / 2,
-                                      y=y_coord)
-                self.ok_btn.update()
-                self.conn_btn.update()
-                self.cancel_btn.update()
-
-                self.server_frame.configure(width=self.server_frame.winfo_width() + 1,
-                                            height=self.server_frame.winfo_height() + self.ok_btn.winfo_height())
-                self.server_frame.update()
-                self.server_frame.place(x=self.main_canvas.winfo_width() / 2 - self.server_frame.winfo_width() / 2,
-                                        y=self.main_canvas.winfo_height() / 2 - self.server_frame.winfo_height() / 2)
-                self.server_frame.update()
-
-            def btn_event(self, type, root):
-                # type = 2 is originally for port, got taken out
-                if type == 1:
-                    self.host_str.set("localhost")
-                elif type == 3:
-                    self.user_str.set("")
-                elif type == 4:
-                    self.pass_str.set("")
-                elif type == 5:
-                    # Ok Stuff
-                    server_setting[0] = self.host_str.get()
-                    server_setting[2] = self.user_str.get()
-                    server_setting[3] = self.pass_str.get()
-
-                    f = open('setting.txt', 'r')
-                    lines = f.readlines()
-                    f.close()
-
-                    f = open('setting.txt', 'w')
-                    for line in lines:
-                        if line.find("host=") == 0:
-                            line = "host=" + server_setting[0] + "\n"
-                            f.write(line)
-                        elif line.find("user=") == 0:
-                            line = "user=" + server_setting[2] + "\n"
-                            f.write(line)
-                        elif line.find("pass=") == 0:
-                            line = "pass=" + server_setting[3] + "\n"
-                            f.write(line)
-                        else:
-                            f.write(line)
-                    f.close()
-
-                    for i in range(0, len(server_setting)):
-                        if server_setting[i] == "":
-                            server_setting[i] = None
-                    # print(server_setting)
-
-                    self.destroy()
-                elif type == 6:
-                    if db.update_connection(host=self.host_str.get(), user=self.user_str.get(),
-                                            password=self.pass_str.get()):
-                        self.stats_lbl.configure(text="Successfully Connect", fg=CP[root.theme][6])
-                    else:
-                        self.stats_lbl.configure(text="Failed to Connect", fg=CP[root.theme][6])
-                    self.after(3000, lambda a=root: self.status_fade(a))
-                elif type == 7:
-                    self.destroy()
-
-            def status_fade(self, root):
-                self.stats_lbl.configure(fg=CP[root.theme][5])
-
         def __init__(self, root, theme, screen_width, screen_height, width, height, font_size,
                      canvas_index):
             super().__init__(width=screen_width, height=screen_height, bg=CP[theme][0], highlightthickness=0)
             self.canvas_index = canvas_index
             self.root = root
             self.place(x=width, y=height)
-            self.server_setting = None
 
-            self.ori_logo = Image.open("./logo_dark_mode.png")
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.ori_logo = Image.open("./tom.png")
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label = Label(self, image=self.logo_tk, border=0, bg=CP[theme][0])
@@ -344,11 +91,11 @@ class SentsGui(Tk):
             self.login_user_field.update()
             self.login_pass_field.update()
 
+            # Login Button
             font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
-            self.login_btn = Button(self.login_user_frame, bg=CP[theme][5], fg=CP[theme][1],
+            self.login_btn = Button(self.login_user_frame, bg=CP[theme][5], fg=CP[theme][6],
                                     activebackground=CP[theme][8], activeforeground=CP[theme][9], border=1,
-                                    text="Login", font=font_setting, padx=10, pady=1,
-                                    command=lambda a=1: self.button_event(a))
+                                    text="Login", font=font_setting, padx=10, pady=1, command=self.button_event)
             self.login_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
             self.login_btn.update()
             self.login_user_frame.config(width=self.login_user_text.winfo_width() + self.login_user_field.winfo_width(),
@@ -364,59 +111,47 @@ class SentsGui(Tk):
             self.login_user_frame.place(x=width / 2 - self.login_user_frame.winfo_width() / 2,
                                         y=height * 3 / 4 - self.login_user_frame.winfo_height() / 2)
 
-            font_setting = "Calibri " + str(round(font_size * 0.7)) + " bold"
-            self.setting_btn = Button(self, bg=CP[theme][5], fg=CP[theme][1],
-                                      activebackground=CP[theme][8], activeforeground=CP[theme][9], border=1,
-                                      text="Setting", font=font_setting, padx=5, pady=3,
-                                      command=lambda a=2: self.button_event(a))
-            self.setting_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
-            self.setting_btn.update()
-            self.setting_btn.place(x=root.winfo_width() - (root.margin_width / 2 + self.setting_btn.winfo_width() / 2),
-                                   y=root.margin_height / 2 - self.setting_btn.winfo_height() / 2)
-
             self.update()
             if self.canvas_index != 0:
                 self.place_forget()
             else:
                 self.place(x=0, y=0)
 
-        def button_event(self, type):
-            if type == 1:
+        def button_event(self):
+
+            # Input
+            getuser = self.login_user_strvar.get()
+            getpass = self.login_pass_strvar.get()
+
+            if getuser and getpass:
+                # Database Connection
+                print(getuser)
+                match_account = True
+                privilege = None
+
                 """
-                # Input
-                    self.login_user_strvar.get()
-                    self.login_pass_strvar.get()
+                # Output
+                    match_account
+                    privilege
                 """
 
-                if self.login_user_strvar.get() and self.login_pass_strvar.get():
-                    # Database Connection
-                    match_account = False
-                    privilege = None
-
-                    """
-                    # Output
-                        match_account
-                        privilege
-                    """
-
-                    # Login Frame
-                    if match_account:
-                        pass
-                    else:
-                        print("Incorrect Username or Password")
-
-                    # Temporary Login
-                    self.canvas_index = 1
-                    self.root.set_canvas_index(self.canvas_index)
-                    self.place_forget()
-                    self.root.set_canvas()
-                    self.login_user_strvar.set("")
-                    self.login_pass_strvar.set("")
-                    self.login_user_field.focus_set()
+                # Login Frame
+                if match_account:
+                    pass
                 else:
-                    print("All Field Must be Filled")
-            elif type == 2:
-                self.setting = self.Setting(self.root)
+                    print("Incorrect Username or Password")
+
+                # Temporary Login
+                self.canvas_index = 1
+                self.root.set_canvas_index(self.canvas_index)
+                self.place_forget()
+                self.root.set_canvas()
+                self.login_user_strvar.set("")
+                self.login_pass_strvar.set("")
+                self.login_user_field.focus_set()
+
+            else:
+                print("All Field Must be Filled")
 
         def update_res(self, root):
             width = root.winfo_width()
@@ -425,9 +160,7 @@ class SentsGui(Tk):
 
             self.place(x=0, y=0)
             # self.configure(width=width, height=height)
-            logo_height = round(25 / 100 * height)
-            logo_width = round(logo_height * self.ori_logo.width / self.ori_logo.height)
-            self.resized_logo = self.ori_logo.resize((logo_width, logo_height),
+            self.resized_logo = self.ori_logo.resize((round(25 / 100 * height), round(25 / 100 * height)),
                                                      Image.ANTIALIAS)
             self.logo_tk = ImageTk.PhotoImage(self.resized_logo)
             self.login_logo_label.configure(image=self.logo_tk)
@@ -489,6 +222,8 @@ class SentsGui(Tk):
             self.canvas_index = canvas_index
             self.root = root
 
+            print("LOGIN FRAME")
+
             # Need Comment out later
             self.place(x=width, y=height)
 
@@ -496,27 +231,27 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.73))
             self.view_driver_btn = Button(self.layout_btn, text="View Driver", font=font_setting, padx=10, pady=1,
-                                          bg=CP[theme][5], fg=CP[theme][1],
+                                          bg=CP[theme][5], fg=CP[theme][6],
                                           activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                           state=DISABLED, command=lambda a=1: self.button_event(a))
             self.reg_driver_btn = Button(self.layout_btn, text="Add Driver", font=font_setting, padx=10, pady=1,
-                                         bg=CP[theme][5], fg=CP[theme][1],
+                                         bg=CP[theme][5], fg=CP[theme][6],
                                          activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                          command=lambda a=2: self.button_event(a))
             self.view_admin_btn = Button(self.layout_btn, text="View Staff", font=font_setting, padx=10, pady=1,
-                                         bg=CP[theme][5], fg=CP[theme][1],
+                                         bg=CP[theme][5], fg=CP[theme][6],
                                          activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                          command=lambda a=3: self.button_event(a))
             self.reg_admin_btn = Button(self.layout_btn, text="Add Staff", font=font_setting, padx=10, pady=1,
-                                        bg=CP[theme][5], fg=CP[theme][1],
+                                        bg=CP[theme][5], fg=CP[theme][6],
                                         activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                         command=lambda a=4: self.button_event(a))
             self.prof_btn = Button(self.layout_btn, text="Profile", font=font_setting, padx=10, pady=1,
-                                   bg=CP[theme][5], fg=CP[theme][1],
+                                   bg=CP[theme][5], fg=CP[theme][6],
                                    activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                    command=lambda a=5: self.button_event(a))
             self.logout_btn = Button(self, text="Logout", font=font_setting, padx=10, pady=1,
-                                     bg=CP[theme][5], fg=CP[theme][1],
+                                     bg=CP[theme][5], fg=CP[theme][6],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                      command=lambda a=0: self.button_event(a))
 
@@ -619,9 +354,6 @@ class SentsGui(Tk):
             self.logout_btn.configure(font=font_setting)
 
             if self.canvas_index == 1:
-                self.view_admin.admin_list.clear()
-                self.view_admin.search_str.set("")
-
                 self.view_driver_btn.configure(state=DISABLED)
                 self.reg_driver_btn.configure(state=NORMAL)
                 self.view_admin_btn.configure(state=NORMAL)
@@ -634,15 +366,10 @@ class SentsGui(Tk):
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
                 self.view_driver.update_res(root)
-            elif self.canvas_index == 2:
-                self.view_driver.search_str.set("")
+
                 self.view_driver.driver_list.clear()
                 self.view_admin.admin_list.clear()
-                self.view_admin.search_str.set("")
-                self.view_driver.num_pg_label.place_forget()
-                self.view_driver.prev_label.place_forget()
-                self.view_driver.next_label.place_forget()
-
+            elif self.canvas_index == 2:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=DISABLED)
                 self.view_admin_btn.configure(state=NORMAL)
@@ -656,13 +383,10 @@ class SentsGui(Tk):
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
                 self.add_driver.update_res(root)
-            elif self.canvas_index == 3:
-                self.view_driver.search_str.set("")
-                self.view_driver.driver_list.clear()
-                self.view_driver.num_pg_label.place_forget()
-                self.view_driver.prev_label.place_forget()
-                self.view_driver.next_label.place_forget()
 
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
+            elif self.canvas_index == 3:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
                 self.view_admin_btn.configure(state=DISABLED)
@@ -675,15 +399,10 @@ class SentsGui(Tk):
                 self.add_admin.place_forget()
                 self.prof_admin.place_forget()
                 self.view_admin.update_res(root)
-            elif self.canvas_index == 4:
-                self.view_driver.search_str.set("")
+
                 self.view_driver.driver_list.clear()
                 self.view_admin.admin_list.clear()
-                self.view_admin.search_str.set("")
-                self.view_driver.num_pg_label.place_forget()
-                self.view_driver.prev_label.place_forget()
-                self.view_driver.next_label.place_forget()
-
+            elif self.canvas_index == 4:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
                 self.view_admin_btn.configure(state=NORMAL)
@@ -697,15 +416,10 @@ class SentsGui(Tk):
                 self.add_admin.place(x=margin_width, y=margin_height)
                 self.prof_admin.place_forget()
                 self.add_admin.update_res(root)
-            elif self.canvas_index == 5:
-                self.view_driver.search_str.set("")
+
                 self.view_driver.driver_list.clear()
                 self.view_admin.admin_list.clear()
-                self.view_admin.search_str.set("")
-                self.view_driver.num_pg_label.place_forget()
-                self.view_driver.prev_label.place_forget()
-                self.view_driver.next_label.place_forget()
-
+            elif self.canvas_index == 5:
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
                 self.view_admin_btn.configure(state=NORMAL)
@@ -719,6 +433,9 @@ class SentsGui(Tk):
                 self.add_admin.place_forget()
                 self.prof_admin.place(x=margin_width, y=margin_height)
                 self.prof_admin.update_res(root)
+
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
 
             self.view_driver_btn.update()
             self.reg_driver_btn.update()
@@ -762,54 +479,30 @@ class SentsGui(Tk):
 
     class ViewDriver(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
+            print("AFTER LOGIN")
+
             self.mar_search = 0.92
             self.root = root
-            self.borderwidth = 1
-            self.prof_per_frame = 3
             super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                              bg=CP[theme][0], highlightthickness=0)
             self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
 
-            """
             self.scroll_view = Scrollbar(self, bg=CP[theme][1], orient="vertical")
             self.scroll_view.pack(side=RIGHT, fill=Y)
             # self.scroll_view.place(x=0, y=0)
-            """
 
             self.view_canvas = Canvas(self, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                                       bg=CP[theme][1], highlightthickness=0)
             self.view_canvas.pack(side=LEFT, fill=BOTH, expand=True)
-            # self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
-            # self.scroll_view.configure(command=self.view_canvas.yview)
+            self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
+            self.scroll_view.configure(command=self.view_canvas.yview)
 
             self.driver_list = []
             self.sub_frame = []
-            self.page_index = 0
-            self.canvas_item = []
-
-            font_setting = "Calibri " + str(round(math.pow(font_size, 1)))
-            self.num_pg_label = Label(root, text="1 / 1", font=font_setting, bg=CP[theme][0], fg=CP[theme][1])
-            font_setting = "Calibri " + str(round(math.pow(font_size, 1.1))) + " bold"
-            self.prev_label = Label(root, text="<", font=font_setting, bg=CP[theme][0], fg=CP[theme][8], padx=10)
-            self.next_label = Label(root, text=">", font=font_setting, bg=CP[theme][0], fg=CP[theme][8], padx=10)
-            self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
-            self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
-            self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
-            self.prev_label.bind("<ButtonPress-1>", func=lambda event, a=1, b=theme: self.on_press(event, a, b))
-            self.prev_label.bind("<ButtonRelease-1>", func=lambda event, a=1, b=root: self.on_release(event, a, b))
-            self.next_label.bind("<ButtonPress-1>", func=lambda event, a=2, b=theme: self.on_press(event, a, b))
-            self.next_label.bind("<ButtonRelease-1>", func=lambda event, a=2, b=root: self.on_release(event, a, b))
-            self.num_pg_label.update()
-            self.prev_label.update()
-            self.next_label.update()
-
-            self.num_pg_label.place_forget()
-            self.prev_label.place_forget()
-            self.next_label.place_forget()
 
             self.place(x=root.winfo_width(), y=root.winfo_height())
             # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
-            # self.view_canvas.bind('<Configure>', self.onFrameConfigure)
+            self.view_canvas.bind('<Configure>', self.onFrameConfigure)
 
             self.search_frame = Frame(canvas, width=main_layout[0], height=round(0.08 * main_layout[1]),
                                       bg=CP[theme][0], highlightthickness=0)
@@ -866,7 +559,7 @@ class SentsGui(Tk):
 
             coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
-            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][1],
+            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][6],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                      text="Search", font=font_setting, padx=10, pady=1,
                                      command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
@@ -885,54 +578,11 @@ class SentsGui(Tk):
             canvas_index = root.canvas_index
 
             self.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
-            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
             if self.driver_list:
                 self.place(x=margin_width, y=margin_height + round((1 - self.mar_search) * main_layout[1]))
-
-                font_setting = "Calibri " + str(round(math.pow(font_size, 1)))
-                self.num_pg_label.configure(font=font_setting)
-                font_setting = "Calibri " + str(round(math.pow(font_size, 1.1))) + " bold"
-                self.prev_label.configure(font=font_setting)
-                self.next_label.configure(font=font_setting)
-                self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.num_pg_label.update()
-                self.prev_label.update()
-                self.next_label.update()
-
-                self.view_canvas.update()
-                y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
-                for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
-                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
-                    self.view_canvas.coords(self.canvas_item[i], (0, y_coord))
-                    y_coord = y_coord + frame_height
-
-                remainder = (frame_height - (self.borderwidth * 2)) * self.prof_per_frame - \
-                            self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 2 * self.prof_per_frame)
-                self.view_canvas.configure(width=main_layout[0],
-                                           height=round(self.mar_search * main_layout[1]) + remainder)
-
-                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
-                                        y=root.winfo_height() - (
-                                                margin_height - self.num_pg_label.winfo_height() / 2))
-                if self.page_index >= len(self.sub_frame):
-                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
-                                            self.prev_label.winfo_width() * 1.5,
-                                          y=(root.winfo_height() - margin_height) +
-                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
-                if self.page_index < len(self.sub_frame):
-                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                          y=(root.winfo_height() - margin_height) +
-                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
             else:
                 self.place(x=width, y=height)
-                self.num_pg_label.place_forget()
-                self.prev_label.place_forget()
-                self.next_label.place_forget()
+            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
 
             self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
             self.search_frame.place(x=margin_width, y=margin_height)
@@ -980,45 +630,48 @@ class SentsGui(Tk):
             self.search_sort_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
                                           format(self.search_sort_cbox, font_setting))
 
-            """
             # Need to Adjust back After Search
             for frame in self.sub_frame:
                 frame.configure(width=main_layout[0])
-            
+
             self.view_canvas.bind_all("<MouseWheel>",
                                       lambda event, a=self, b=[margin_width, margin_height, self.mar_search],
                                       : self.root._on_mousewheel(event, a, b))
-            """
 
             if not self.driver_list:
                 self.place_forget()
-            self.update()
 
         def search_driver(self, margin, root):
             main_layout = root.main_layout
             theme = root.theme
-            self.driver_list = []
-            print("Search Admin")
+            self.driver_list.clear()
+            print("Search Driver")
             # Test
-            """
-            if self.search_str.get() == "test":
-                self.driver_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            
+
+            """            
             Input
                 self.search_str
                 self.search_by_str
                 self.search_sort_str
                 self.search_filter_str
             """
-
             # Database Connection
+
             search_input = self.search_str.get()
 
-            # print("Test = " + search_input)
-            # db.select_user(search_input)
-            # db.select_car_owner(search_input)
-            self.driver_list = db.select_car_owner(search_input)
+            print("Test = " + search_input)
+            user_from_db = db.select_user(search_input)
             # print(user_from_db)
+
+            """USER LIST"""
+            if user_from_db:
+                user_list = []
+                for user_info in user_from_db:
+                    user_temp = user_info
+                    user_list.append(user_temp)
+                    """user_list is a 2D list"""
+            else:
+                print("Username does not Exist")
 
             """
             Output
@@ -1032,169 +685,30 @@ class SentsGui(Tk):
             """
 
             # Result Search
-            # print(self.driver_list)
             if self.driver_list:
-                self.page_index = 1
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
                 y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
-                # print(self.view_canvas.winfo_height(), frame_height)
-                temp_sub_frame = []
-                self.canvas_item = []
-                self.sub_frame = []
-                self.view_canvas.delete('all')
                 for i, driver in enumerate(self.driver_list):
-                    print("\t", driver)
-                    each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(), height=frame_height,
-                                           bg=CP[theme][5], highlightthickness=self.borderwidth)
-                    label = Label(each_sub_frame, text=driver[0])
+                    print(driver)
+                    each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=100, bg=CP[theme][10],
+                                           highlightthickness=0)
+                    label = Label(each_sub_frame, text="contoh")
                     label.place(x=0, y=0)
-                    if i < self.prof_per_frame:
-                        canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
-                        self.canvas_item.append(canvas_item)
-                    y_coord = y_coord + frame_height
-
-                    if i % self.prof_per_frame < self.prof_per_frame - 1:
-                        temp_sub_frame.append(each_sub_frame)
-                        if i == len(self.driver_list) - 1:
-                            remainder = 3 - (i % self.prof_per_frame)
-
-                            for j in range(0, remainder):
-                                each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(),
-                                                       height=frame_height,
-                                                       bg=CP[theme][5], highlightthickness=self.borderwidth)
-                                temp_sub_frame.append(each_sub_frame)
-
-                                canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame,
-                                                                             anchor=NW)
-                                self.canvas_item.append(canvas_item)
-                                y_coord = y_coord + frame_height
-                            self.sub_frame.append(temp_sub_frame)
-                    else:
-                        temp_sub_frame.append(each_sub_frame)
-                        self.sub_frame.append(temp_sub_frame)
-                        temp_sub_frame = []
+                    self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                    y_coord = y_coord + 100
+                    self.sub_frame.append(each_sub_frame)
 
                 self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
-
-                remainder = self.view_canvas.winfo_height() - (frame_height - (self.borderwidth * 2)) * \
-                            self.prof_per_frame
-                remainder = remainder - (self.borderwidth * 2 * self.prof_per_frame)
-
-                self.view_canvas.configure(width=main_layout[0], height=self.view_canvas.winfo_height() - remainder)
-                self.view_canvas.update()
+                self.view_canvas.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
                 self.search_frame.place(x=margin[0], y=margin[1])
-                # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
-
-                font_setting = "Calibri " + str(round(math.pow(root.font_size, 1)))
-                self.num_pg_label.configure(font=font_setting, text=("1 / " + str(len(self.sub_frame))))
-                font_setting = "Calibri " + str(round(math.pow(root.font_size, 1.1))) + " bold"
-                self.prev_label.configure(font=font_setting)
-                self.next_label.configure(font=font_setting)
-                self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
-                self.num_pg_label.update()
-                self.prev_label.update()
-                self.next_label.update()
-
-                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
-                                        y=root.winfo_height() - (
-                                                margin[1] - self.num_pg_label.winfo_height() / 2))
-                """self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
-                                        self.prev_label.winfo_width() * 1.5,
-                                      y=(root.winfo_height() - margin[1]) +
-                                        (margin[1] / 2 - self.next_label.winfo_height() / 2))"""
-                if len(self.sub_frame) > 1:
-                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                          y=(root.winfo_height() - margin[1]) +
-                                            (margin[1] / 2 - self.next_label.winfo_height() / 2))
+                self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
             else:
                 self.place_forget()
-                self.num_pg_label.place_forget()
-                self.prev_label.place_forget()
-                self.next_label.place_forget()
-                print("Empty Search Result")
 
         def onFrameConfigure(self, event):
             self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
-
-        def on_press(self, event, type, theme):
-            if type == 1:
-                self.prev_label.configure(bg=CP[theme][3])
-            elif type == 2:
-                self.next_label.configure(bg=CP[theme][3])
-
-        def on_release(self, event, type, root):
-            if type == 1:
-                self.prev_label.configure(bg=CP[root.theme][0])
-                self.page_index = self.page_index - 1
-
-                self.view_canvas.update()
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
-                y_coord = 0
-                self.view_canvas.delete('all')
-                self.canvas_item = []
-                for frame in self.sub_frame[self.page_index - 1]:
-                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
-                    canvas_item = self.view_canvas.create_window((0, y_coord), window=frame, anchor=NW)
-                    self.canvas_item.append(canvas_item)
-                    y_coord = y_coord + frame_height
-
-                self.num_pg_label.configure(text=(str(self.page_index) + " / " + str(len(self.sub_frame))))
-                self.num_pg_label.update()
-                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
-                                        y=root.winfo_height() -
-                                          (root.margin_height - self.num_pg_label.winfo_height() / 2))
-
-                self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                        self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                      y=(root.winfo_height() - root.margin_height) +
-                                        (root.margin_height / 2 - self.next_label.winfo_height() / 2))
-
-                if self.page_index > 1:
-                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
-                                            self.prev_label.winfo_width() * 1.5,
-                                          y=(root.winfo_height() - root.margin_height) +
-                                            (root.margin_height / 2 - self.next_label.winfo_height() / 2))
-                else:
-                    self.prev_label.place_forget()
-            elif type == 2:
-                self.next_label.configure(bg=CP[root.theme][0])
-                self.page_index = self.page_index + 1
-
-                self.view_canvas.update()
-                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
-                y_coord = 0
-                self.view_canvas.delete('all')
-                self.canvas_item = []
-                for frame in self.sub_frame[self.page_index - 1]:
-                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
-                    canvas_item = self.view_canvas.create_window((0, y_coord), window=frame, anchor=NW)
-                    self.canvas_item.append(canvas_item)
-                    y_coord = y_coord + frame_height
-
-                self.num_pg_label.configure(text=(str(self.page_index) + " / " + str(len(self.sub_frame))))
-                self.num_pg_label.update()
-                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
-                                        y=root.winfo_height() -
-                                          (root.margin_height - self.num_pg_label.winfo_height() / 2))
-
-                self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
-                                        self.prev_label.winfo_width() * 1.5,
-                                      y=(root.winfo_height() - root.margin_height) +
-                                        (root.margin_height / 2 - self.next_label.winfo_height() / 2))
-
-                if self.page_index < len(self.sub_frame):
-                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
-                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
-                                          y=(root.winfo_height() - root.margin_height) +
-                                            (root.margin_height / 2 - self.next_label.winfo_height() / 2))
-                else:
-                    self.next_label.place_forget()
 
     class AddDriver(Frame):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
@@ -1238,11 +752,11 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.6))
             self.upload_driver_btn = Button(self, text="Upload Image", padx=5, pady=1, font=font_setting,
-                                            bg=CP[theme][5], fg=CP[theme][1],
+                                            bg=CP[theme][5], fg=CP[theme][6],
                                             activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                             command=lambda a=0, b=main_layout: self.open_filedialogue(a, b))
             self.upload_plate_btn = Button(self, text="Upload Image", padx=5, pady=1, font=font_setting,
-                                           bg=CP[theme][5], fg=CP[theme][1],
+                                           bg=CP[theme][5], fg=CP[theme][6],
                                            activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                            command=lambda a=1, b=main_layout: self.open_filedialogue(a, b))
             self.upload_driver_btn.place(x=canvas.winfo_width(), y=canvas.winfo_height())
@@ -1363,7 +877,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.add_btn = Button(self, text="Save", font=font_setting, padx=15, pady=1,
-                                  bg=CP[theme][5], fg=CP[theme][1],
+                                  bg=CP[theme][5], fg=CP[theme][6],
                                   command=self.save_driver)
             self.add_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.add_btn.update()
@@ -1371,7 +885,7 @@ class SentsGui(Tk):
                                y=main_layout[1] - self.add_btn.winfo_height())
 
             self.clear_btn = Button(self, text="Clear", font=font_setting, padx=15, pady=1,
-                                    bg=CP[theme][5], fg=CP[theme][1],
+                                    bg=CP[theme][5], fg=CP[theme][6],
                                     command=lambda a=main_layout, b=font_size: self.clear(a, b))
             self.clear_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.clear_btn.update()
@@ -1535,7 +1049,6 @@ class SentsGui(Tk):
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() - self.add_btn.winfo_width() * 1.5,
                                  y=main_layout[1] - self.clear_btn.winfo_height())
-            self.update()
 
         def open_filedialogue(self, type, main_layout):
             """
@@ -1579,7 +1092,7 @@ class SentsGui(Tk):
             no_img_driver = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                               round(percent / 100 * main_layout[1])), color='#171010')
             no_img_driver_text = "No Driver\nImage Uploaded"
-            no_img_driver_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
+            no_img_driver_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_driver)
             w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
             draw.text((round((no_img_driver.width / 2 - w / 2)),
@@ -1590,7 +1103,7 @@ class SentsGui(Tk):
             no_img_plate = Image.new('RGB', (round(percent / 100 * main_layout[1]),
                                              round(percent / 100 * main_layout[1])), color='#171010')
             no_img_plate_text = "No Plate Number\nImage Uploaded"
-            no_img_plate_font = ImageFont.truetype("Calibri.ttf", round(font_size * 1.1))
+            no_img_plate_font = ImageFont.truetype("calibri.ttf", round(font_size * 1.1))
             draw = ImageDraw.Draw(no_img_plate)
             w, h = draw.textsize(no_img_plate_text, font=no_img_plate_font)
             draw.text((round((no_img_plate.width / 2 - w / 2)),
@@ -1642,7 +1155,6 @@ class SentsGui(Tk):
         def __init__(self, root, canvas, theme, main_layout, font_size, margin_width, margin_height, canvas_index):
             self.mar_search = 0.92
             self.root = root
-            self.borderwidth = 1
             super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                              bg=CP[theme][0], highlightthickness=0)
             self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
@@ -1659,7 +1171,6 @@ class SentsGui(Tk):
 
             self.admin_list = []
             self.sub_frame = []
-            self.canvas_item = []
 
             self.place(x=root.winfo_width(), y=root.winfo_height())
             # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
@@ -1718,7 +1229,7 @@ class SentsGui(Tk):
 
             coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
-            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][1],
+            self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][6],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
                                      text="Search", font=font_setting, padx=10, pady=1,
                                      command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
@@ -1738,23 +1249,11 @@ class SentsGui(Tk):
             canvas_index = root.canvas_index
 
             self.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
-            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
             if self.admin_list:
                 self.place(x=margin_width, y=margin_height + round((1 - self.mar_search) * main_layout[1]))
-                self.view_canvas.update()
-                y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
-                for i, frame in enumerate(self.sub_frame):
-                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
-                    self.view_canvas.coords(self.canvas_item[i], (0, y_coord))
-                    y_coord = y_coord + frame_height
-
-                remainder = (frame_height - (self.borderwidth * 2)) * 4 - self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 8)
-                self.view_canvas.configure(width=main_layout[0],
-                                           height=round(self.mar_search * main_layout[1]) + remainder)
             else:
                 self.place(x=width, y=height)
+            self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
 
             self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
             self.search_frame.place(x=margin_width, y=margin_height)
@@ -1806,16 +1305,12 @@ class SentsGui(Tk):
             for frame in self.sub_frame:
                 frame.configure(width=main_layout[0])
 
-            if self.admin_list:
-                self.view_canvas.bind_all("<MouseWheel>",
-                                          lambda event, a=self, b=[margin_width, margin_height, self.mar_search],
-                                          : self.root._on_mousewheel(event, a, b))
-            else:
-                self.view_canvas.bind_all("<MouseWheel>", self.root._on_mousewheel_pass)
+            self.view_canvas.bind_all("<MouseWheel>",
+                                      lambda event, a=self, b=[margin_width, margin_height, self.mar_search],
+                                      : self.root._on_mousewheel(event, a, b))
 
             if not self.admin_list:
                 self.place_forget()
-            self.update()
 
         def search_admin(self, margin, root):
             main_layout = root.main_layout
@@ -1848,41 +1343,26 @@ class SentsGui(Tk):
 
             # Result Search
             if self.admin_list:
-                self.sub_frame = []
-                self.canvas_item = []
-                self.view_canvas.delete('all')
-                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
                 y_coord = 0
                 for i, admin in enumerate(self.admin_list):
-                    print("\t", admin)
-                    each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=frame_height, bg=CP[theme][5],
-                                           highlightthickness=self.borderwidth)
+                    print(admin)
+                    each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=100, bg=CP[theme][10],
+                                           highlightthickness=0)
                     label = Label(each_sub_frame, text=i)
                     label.place(x=0, y=0)
-                    canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
-                    self.canvas_item.append(canvas_item)
-                    y_coord = y_coord + frame_height
+                    self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                    y_coord = y_coord + 100
                     self.sub_frame.append(each_sub_frame)
 
                 self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
-
-                remainder = (frame_height - (self.borderwidth * 2)) * 4 - self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 8)
-                self.view_canvas.configure(width=main_layout[0],
-                                           height=round(self.mar_search * main_layout[1]) + remainder)
-
+                self.view_canvas.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
                 self.search_frame.place(x=margin[0], y=margin[1])
                 self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
-
-                self.view_canvas.bind_all("<MouseWheel>",
-                                          lambda event, a=self, b=margin,
-                                          : self.root._on_mousewheel(event, a, b))
             else:
                 self.place_forget()
-                self.view_canvas.bind_all("<MouseWheel>", self.root._on_mousewheel_pass)
 
         def onFrameConfigure(self, event):
             self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
@@ -1942,14 +1422,14 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.add_btn = Button(self, text="Save", font=font_setting, padx=15, pady=1,
-                                  bg=CP[theme][5], fg=CP[theme][1], command=self.save_admin)
+                                  bg=CP[theme][5], fg=CP[theme][6], command=self.save_admin)
             self.add_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.add_btn.update()
             self.add_btn.place(x=main_layout[0] - self.add_btn.winfo_width(),
                                y=main_layout[1] - self.add_btn.winfo_height())
 
             self.clear_btn = Button(self, text="Clear", font=font_setting, padx=15, pady=1,
-                                    bg=CP[theme][5], fg=CP[theme][1], command=self.clear)
+                                    bg=CP[theme][5], fg=CP[theme][6], command=self.clear)
             self.clear_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() - self.add_btn.winfo_width() * 1.5,
@@ -2017,7 +1497,6 @@ class SentsGui(Tk):
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() - self.add_btn.winfo_width() * 1.5,
                                  y=main_layout[1] - self.clear_btn.winfo_height())
-            self.update()
 
         def clear(self):
             self.name_str.set("")
@@ -2100,7 +1579,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.65))
             self.name_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                          bg=CP[theme][5], fg=CP[theme][1],
+                                          bg=CP[theme][5], fg=CP[theme][6],
                                           command=lambda a=1: self.update_profile(a))
             self.name_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.name_update_btn.update()
@@ -2109,7 +1588,7 @@ class SentsGui(Tk):
                                          self.name_update_btn.winfo_height() / 2)
 
             self.username_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                              bg=CP[theme][5], fg=CP[theme][1],
+                                              bg=CP[theme][5], fg=CP[theme][6],
                                               command=lambda a=2: self.update_profile(a))
             self.username_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.username_update_btn.update()
@@ -2118,7 +1597,7 @@ class SentsGui(Tk):
                                              self.username_update_btn.winfo_height() / 2)
 
             self.pass_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
-                                          bg=CP[theme][5], fg=CP[theme][1],
+                                          bg=CP[theme][5], fg=CP[theme][6],
                                           command=lambda a=3: self.update_profile(a))
             self.pass_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.pass_update_btn.update()
@@ -2128,7 +1607,7 @@ class SentsGui(Tk):
 
             font_setting = "Calibri " + str(round(font_size * 0.8))
             self.clear_btn = Button(self, text="Clear", font=font_setting, padx=15, pady=1,
-                                    bg=CP[theme][5], fg=CP[theme][1], command=self.clear)
+                                    bg=CP[theme][5], fg=CP[theme][6], command=self.clear)
             self.clear_btn.place(x=root.winfo_width(), y=root.winfo_height())
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() * 1.5,
@@ -2215,7 +1694,6 @@ class SentsGui(Tk):
             self.clear_btn.update()
             self.clear_btn.place(x=main_layout[0] - self.clear_btn.winfo_width() * 1.5,
                                  y=main_layout[1] - self.clear_btn.winfo_height())
-            self.update()
 
         def clear(self):
             self.name_str.set("")
@@ -2277,7 +1755,6 @@ class SentsGui(Tk):
         self.main_layout = [round(self.winfo_width() - 2 * self.margin_width),
                             round(self.winfo_height() - 2 * self.margin_height)]
         self.ratio = self.main_layout[0] / self.main_layout[1]
-        print(self.curr_width, self.curr_height)
 
         self.font_style = "Calibri"
         self.font_size = 0
@@ -2354,10 +1831,7 @@ class SentsGui(Tk):
             mar_percent = mar_percent * 2
             self.main_layout = [round((100 - mar_percent) / 100 * width),
                                 round((100 - mar_percent) / 100 * height)]
-            if self.curr_width < 1029 or self.curr_height < 579:
-                self.font_size = round(self.main_layout[1] / 1.1 / self.FONTSIZE_RATIO)
-            else:
-                self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
+            self.font_size = round(self.main_layout[1] / self.FONTSIZE_RATIO)
 
             if self.canvas_index == 0:
                 self.login_canvas.update_res(self)
@@ -2384,7 +1858,7 @@ class SentsGui(Tk):
             # print("Coord: " , x, y, "\nMin : ", margin[0], y_top, "\nMax : ", x_right, y_bot)
             if margin[0] <= x <= x_right and y_top <= y <= y_bot:
                 frame.view_canvas.yview_scroll(round(-1 * (event.delta / 120)), "units")
-                # print("Scroll Driver")
+                print("Scroll Driver")
         elif self.canvas_index == 3:
             x_right = frame.winfo_width() + margin[0]
             y_top = margin[1] + frame.winfo_height() * (1 - margin[2])
@@ -2395,34 +1869,10 @@ class SentsGui(Tk):
                 frame.view_canvas.yview_scroll(round(-1 * (event.delta / 120)), "units")
                 print("Scroll Admin")
 
-    def _on_mousewheel_pass(self, event):
-        pass
-
 
 def main():
-    get_setting()
     app = SentsGui(0)
     app.mainloop()
-
-
-def get_setting():
-    global db
-    with open('setting.txt', 'r') as f:
-        lines = f.readlines()
-        for line in lines:
-            if line.find("host=") == 0:
-                server_setting[0] = line.split('=')[1].replace("\n", "")
-                if server_setting[0] == "":
-                    server_setting[0] = None
-            elif line.find("user=") == 0:
-                server_setting[2] = line.split('=')[1].replace("\n", "")
-                if server_setting[2] == "":
-                    server_setting[2] = None
-            elif line.find("pass=") == 0:
-                server_setting[3] = line.split('=')[1].replace("\n", "")
-                if server_setting[3] == "":
-                    server_setting[3] = None
-    db = Database(server_setting[0], server_setting[2], server_setting[3])
 
 
 if __name__ == "__main__":

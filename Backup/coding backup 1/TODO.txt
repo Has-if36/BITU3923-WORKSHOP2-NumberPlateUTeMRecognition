@@ -1,0 +1,14 @@
+SentsGuiAdmin
+- Tmbh superadmin?
+
+SentsGuiSecurity
+- Add Fail Safe for AI
+	- Tambah Key in no. plate
+
+
+===DONE===
+SentsGuiAdmin
+
+SentsGuiSecurity
+- Add Login
+	- Elakkan Unknown User baca Log
