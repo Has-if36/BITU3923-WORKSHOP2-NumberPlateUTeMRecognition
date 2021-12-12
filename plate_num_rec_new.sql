@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 12, 2021 at 07:48 AM
+-- Generation Time: Dec 12, 2021 at 08:29 AM
 -- Server version: 10.4.14-MariaDB
 -- PHP Version: 7.2.34
 
@@ -135,22 +135,28 @@ ALTER TABLE `admin`
   ADD PRIMARY KEY (`staffID`);
 
 --
+-- Indexes for table `entry_log`
+--
+ALTER TABLE `entry_log`
+  ADD PRIMARY KEY (`plateNum`);
+
+--
 -- Indexes for table `officer`
 --
 ALTER TABLE `officer`
-  ADD PRIMARY KEY (`officerID`);
+  ADD PRIMARY KEY (`officerID`,`plateNum`);
 
 --
 -- Indexes for table `staff`
 --
 ALTER TABLE `staff`
-  ADD PRIMARY KEY (`staffID`);
+  ADD PRIMARY KEY (`staffID`,`plateNum`);
 
 --
 -- Indexes for table `student`
 --
 ALTER TABLE `student`
-  ADD PRIMARY KEY (`studentID`);
+  ADD PRIMARY KEY (`studentID`,`plateNum`);
 
 --
 -- Indexes for table `vehicle`
