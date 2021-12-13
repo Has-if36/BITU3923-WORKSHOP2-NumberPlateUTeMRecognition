@@ -122,7 +122,7 @@ class Database:
         staff = None
         try:  # Fetch User
             status = ""
-            self.cursor.execute("SELECT * FROM plate_num_rec.staff where staffID = %s", (staff_id,))
+            self.cursor.execute("SELECT * FROM plate_num_rec.staff where staffID = %s", (staff_id, ))
             result = self.cursor.fetchall()
             staff = result
         except:
@@ -159,9 +159,8 @@ class Database:
             username = username.lower()
 
             # Fetch User
-            self.cursor.execute(
-                "SELECT admin.username, admin.password FROM plate_num_rec.admin where admin.username = '" +
-                username + "'")
+            self.cursor.execute("SELECT user.username, user.password FROM plate_num_rec.user where user.username = '" +
+                                username + "'")
             result = self.cursor.fetchall()
             staff_list = result
         except:
@@ -195,6 +194,7 @@ class Database:
         result = self.cursor.fetchall()
         staff_list = result
 
+
         if staff_list:
             # for staff in staff_list:
             #     print(staff)
@@ -203,7 +203,26 @@ class Database:
             print("Username does not Exist")
             return
 
-    def edit_student(self, id, value, mode):
+        """
+        # rangeloop = [1, 2, 3, 4, 5]
+        staff_array = []
+        if staff_list:
+            nom = 0
+            nom2 = 0
+            for staff in staff_list:
+                for i in range(0, 5):
+                    staff_temp = staff
+                    nom += 1
+                staff_array.append(staff_temp)
+                nom += 1
+            # print("Test new array = ",staff_array)
+            return staff_array
+        else:
+            print("Username does not Exist")
+            return
+        """
+
+    def edit_user(self, id, value, mode):
         status = ""
         mode_name = ""
         sql = ""
@@ -212,34 +231,26 @@ class Database:
 
         # Fetch User
         status = ""
-        self.cursor.execute("SELECT * FROM plate_num_rec.student where student.studentID = '" + str(id) + "'")
+        self.cursor.execute("SELECT * FROM plate_num_rec.user where user.id = '" + str(id) + "'")
         result = self.cursor.fetchall()
 
         if result:
             if mode == 1:
-                mode_name = "studentID"
+                mode_name = "Username"
                 val_bef = result[0][1]
                 value = value.lower()
             elif mode == 2:
-                mode_name = "name"
+                mode_name = "Password"
             elif mode == 3:
-                mode_name = "year"
+                mode_name = "Privilege"
                 val_bef = result[0][3]
             elif mode == 4:
-                mode_name = "hostelStatus"
+                mode_name = "Name"
                 val_bef = result[0][4]
-                value = value.lower()
-            elif mode == 5:
-                mode_name = "plateNum"
-                val_bef = result[0][5]
-                value = value.lower()
-            elif mode == 6:
-                mode_name = "vaccinationStatus"
-                val_bef = result[0][6]
                 value = value.lower()
 
             try:
-                sql = "UPDATE plate_num_rec.student SET student." + mode_name.lower() + " = %s WHERE student.studentID = %s;"
+                sql = "UPDATE plate_num_rec.user SET user." + mode_name.lower() + " = %s WHERE user.id = %s;"
                 val = (value, id)
                 self.cursor.execute(sql, val)
 
@@ -261,82 +272,72 @@ class Database:
 
         print(status)
 
-    def remove_student(self, id):
+    def remove_user(self, id):
         status = ""
         # Fetch User
         try:
-            self.cursor.execute("SELECT * FROM plate_num_rec.student where studentID = '" + str(id) + "'")
+            self.cursor.execute("SELECT * FROM plate_num_rec.user where id = '" + str(id) + "'")
             result = self.cursor.fetchall()
-            student = result
+            staff = result
 
-            studentid = student[0][1]
-            name = student[0][2]
-            year = student[0][3]
-            hostelstatus = student[0][4]
-            platenum = student[0][5]
-            vacstatus = student[0][6]
-
+            username = staff[0][1]
+            privilege = staff[0][3]
+            name = staff[0][4]
         except:
-            status = "Student ID " + str(id) + " Does Not Exist"
+            status = "User ID " + str(id) + " Does Not Exist"
 
         # Remove User
         try:
-            self.cursor.execute("DELETE FROM plate_num_rec.student WHERE studentID = '" + str(id) + "'")
+            self.cursor.execute("DELETE FROM plate_num_rec.user WHERE id = '" + str(id) + "'")
 
             self.db.commit()
             status = "User Successfully Removed: \n\tID\t\t\t: " + str(id) + \
-                     "\n\tStudentID\t\t: " + studentid + \
-                     "\n\tName\t: " + name + \
-                     "\n\tYear\t: " + year + \
-                     "\n\tHostel Status\t: " + hostelstatus + \
-                     "\n\tPlate Num\t: " + platenum + \
-                     "\n\tVax Status\t: " + vacstatus
-
+                     "\n\tName\t\t: " + name + \
+                     "\n\tUsername\t: " + username + \
+                     "\n\tPrivilege\t: " + privilege
         except:
             if status == "":
                 status = "User Failed to Remove: \n\tID\t\t\t: " + str(id) + \
-                         "\n\tStudentID\t\t: " + studentid + \
-                         "\n\tName\t: " + name + \
-                         "\n\tYear\t: " + year + \
-                         "\n\tHostel Status\t: " + hostelstatus + \
-                         "\n\tPlate Num\t: " + platenum + \
-                         "\n\tVax Staus\t: " + vacstatus
+                         "\n\tName\t\t: " + name + \
+                         "\n\tUsername\t: " + username + \
+                         "\n\tPrivilege\t: " + privilege
 
         print(status)
 
-    def insert_vehicle(self, platenum, name, carbrand, roadtaxexp):
+    def insert_vehicle(self, plate_num, veh_type, veh_brand, veh_model, road_tax_exp):
         # Example
-        # sql = "INSERT INTO plate_num_rec.vehicle (id, username, password, privilege, name) VALUES (%s, %s, %s, %s, %s)"
+        # sql = "INSERT INTO plate_num_rec.user (id, username, password, privilege, name) VALUES (%s, %s, %s, %s, %s)"
         # val = ('1', 'abu', 'abu', 'admin', 'abu')
         # Insert New User
 
         self.db.connect()
 
-        platenum = platenum.upper()
-        name = name.lower()
-        carbrand = carbrand.lower()
-        roadtaxexp = roadtaxexp.lower()
+        plate_num = plate_num.upper()
+        veh_type = veh_type.lower()
+        veh_brand = veh_brand.lower()
+        veh_model = veh_model.lower()
+        road_tax_exp = road_tax_exp.lower()
 
         status = None
         try:
             sql = "INSERT INTO plate_num_rec.vehicle " \
-                  "(plateNum, name, carBrand, roadTaxExpiry) VALUES (%s, %s, %s, %s)"
-            val = (platenum, name, carbrand, roadtaxexp)
+                  "(plateNum, vehType, vehBrand, vehModel, roadTaxExpiry) VALUES (%s, %s, %s, %s, %s)"
+            val = (plate_num, veh_type, veh_brand, veh_model, road_tax_exp)
             self.cursor.execute(sql, val)
 
             self.db.commit()
 
-            status = "Vehicle Successfully Added: \n\tPlate Number:" + platenum + \
-                     "\n\tPlate Number\t: " + platenum + \
-                     "\n\tName\t: " + name + \
-                     "\n\tCar Brand\t: " + carbrand + \
-                     "\n\tRoad Tax Expiry\t: " + roadtaxexp
+            status = "Vehicle Successfully Added: \n\tPlate Number:" + plate_num + \
+                     "\n\tVeh Type\t: " + veh_type + \
+                     "\n\tVeh Brand\t: " + veh_brand + \
+                     "\n\tVeh Model\t: " + veh_model + \
+                     "\n\tRoad Tax\t: " + road_tax_exp
         except:
-            status = "Vehicle Failed to Add: \n\tPlate Number: " + platenum + \
-                     "\n\tPlate Number\t: " + platenum + \
-                     "\n\tName\t: " + name + \
-                     "\n\tCar Brand\t: " + carbrand + \
-                     "\n\tRoad Tax Expiry\t: " + roadtaxexp
+            status = "Vehicle Failed to Add: \n\tPlate Number: " + plate_num + \
+                     "\n\tVeh Type\t: " + veh_type + \
+                     "\n\tVeh Brand\t: " + veh_brand + \
+                     "\n\tVeh Model\t: " + veh_model + \
+                     "\n\tRoad Tax\t: " + road_tax_exp
 
         print(status)
 
@@ -345,7 +346,7 @@ class Database:
     def select_vehicle(self, plate_num):
         plate_num = plate_num.upper()
         # Fetch User
-        self.cursor.execute("SELECT * FROM plate_num_rec.vehicle WHERE vehicle.plateNum like '%" + plate_num + "%'")
+        self.cursor.execute("SELECT * FROM plate_num_rec.vehicle WHERE car_owner.plateNum like '%" + plate_num + "%'")
         result = self.cursor.fetchall()
         car_list = result
 
@@ -364,32 +365,37 @@ class Database:
 
         # Fetch User
         status = ""
-        self.cursor.execute("SELECT * FROM plate_num_rec.vehicle where vehicle.plateNum = '" + plate_num + "'")
+        self.cursor.execute("SELECT * FROM plate_num_rec.car_owner where car_owner.plateNum = '" + plate_num + "'")
         result = self.cursor.fetchall()
 
         if result:
             if mode == 1:
-                mode_name = "Plate Number"
-                db_name = "plateNum"
+                mode_name = "Name"
+                db_name = "ownerName"
                 val_bef = result[0][1]
                 value = value.lower()
             elif mode == 2:
-                mode_name = "Name"
-                db_name = "name"
+                mode_name = "Status"
+                db_name = "ownerStatus"
                 val_bef = result[0][2]
             elif mode == 3:
-                mode_name = "Car Brand"
-                db_name = "carBrand"
+                mode_name = "ID"
+                db_name = "statusId"
                 val_bef = result[0][3]
                 value = value.upper()
             elif mode == 4:
-                mode_name = "Road Tax Expiry"
-                db_name = "roadTaxExpiry"
+                mode_name = "Car Brand"
+                db_name = "carBrand"
                 val_bef = result[0][4]
+                value = value.lower()
+            elif mode == 5:
+                mode_name = "Car Model"
+                db_name = "carModel"
+                val_bef = result[0][5]
                 value = value.lower()
 
             try:
-                sql = "UPDATE plate_num_rec.vehicle SET vehicle." + db_name + " = %s WHERE vehicle.plateNum = %s;"
+                sql = "UPDATE plate_num_rec.car_owner SET car_owner." + db_name + " = %s WHERE car_owner.plateNum = %s;"
                 val = (value, plate_num)
                 self.cursor.execute(sql, val)
 
@@ -411,68 +417,66 @@ class Database:
         status = ""
         # Fetch User
         try:
-            self.cursor.execute("SELECT * FROM plate_num_rec.vehicle where plateNum = '" + plate_num + "'")
+            self.cursor.execute("SELECT * FROM plate_num_rec.car_owner where plateNum = '" + plate_num + "'")
             result = self.cursor.fetchall()
             car = result
 
-            plate_num = car[0][1]
-            name = car[0][2]
-            carbrand = car[0][3]
-            roadtaxexpiry = car[0][4]
-
+            name = car[0][1]
+            owner_status = car[0][2]
+            id = car[0][3]
+            car_brand = car[0][4]
+            car_model = car[0][5]
         except:
             status = "Plate Number " + plate_num + " Does Not Exist"
 
         # Remove User
         try:
-            self.cursor.execute("DELETE FROM plate_num_rec.vehicle WHERE plateNum = '" + plate_num + "'")
+            self.cursor.execute("DELETE FROM plate_num_rec.car_owner WHERE plateNum = '" + plate_num + "'")
 
             self.db.commit()
-            status = "Vehicle Successfully Removed: \n\tPlate Number: " + plate_num + \
-                     "\n\tPlate Number\t: " + plate_num + \
-                     "\n\tName\t: " + name + \
-                     "\n\tCar Brand\t: " + carbrand + \
-                     "\n\tRoad Tax Expiry\t: " + roadtaxexp
+            status = "Car OWner Successfully Removed: \n\tPlate Number: " + plate_num + \
+                     "\n\tName\t\t: " + name + \
+                     "\n\tStatus\t\t: " + owner_status + \
+                     "\n\tID\t\t\t: " + id + \
+                     "\n\tCar Brand\t: " + car_brand + \
+                     "\n\tCar Brand\t: " + car_model
         except:
             if status == "":
-                status = "VehicleFailed to Remove: \n\tPlate Number: " + plate_num + \
-                         "\n\tPlate Number\t: " + plate_num + \
-                         "\n\tName\t: " + name + \
-                         "\n\tCar Brand\t: " + carbrand + \
-                         "\n\tRoad Tax Expiry\t: " + roadtaxexp
+                status = "Car OWner Failed to Remove: \n\tPlate Number: " + plate_num + \
+                         "\n\tName\t\t: " + name + \
+                         "\n\tStatus\t\t: " + owner_status + \
+                         "\n\tID\t\t\t: " + id + \
+                         "\n\tCar Brand\t: " + car_brand + \
+                         "\n\tCar Brand\t: " + car_model
 
         print(status)
 
-    def insert_staff(self, staff_id, name, stats, plate_num, vaccination_stats, veh_brand, road_tax):
+    def insert_staff(self, staff_id, name, vaccination_stats,
+                       plate_num, veh_type, veh_brand, veh_model, road_tax):
         self.db.connect()
 
         staff_id = staff_id.lower()
         name = name.lower()
-        stats = stats.lower()
         plate_num = plate_num.lower()
         vaccination_stats = vaccination_stats.lower()
 
         status = None
         try:
             sql = "INSERT INTO plate_num_rec.staff " \
-                  "(staffID, name, status, plateNum, vaccinationStatus) VALUES (%s, %s, %s, %s, %s)"
-            val = (staff_id, name, stats, plate_num, vaccination_stats)
+                  "(staffID, name, plateNum, vaccinationStatus) VALUES (%s, %s, %s, %s)"
+            val = (staff_id, name, plate_num, vaccination_stats)
             self.cursor.execute(sql, val)
 
             self.db.commit()
 
-            status = "Staff Successfully Added: \n\tStaff ID\t\t:" + str(staff_id) + \
-                     "\n\tStaff ID\t\t\t: " + staff_id + \
-                     "\n\tName\t: " + name + \
-                     "\n\tStatus\t: " + stats + \
+            status = "Staff Successfully Added: \n\tStaff ID\t\t:" + staff_id + \
+                     "\n\tName\t\t\t: " + name + \
                      "\n\tPlate Number\t: " + plate_num + \
                      "\n\tVaccine Stat\t: " + vaccination_stats
             print(status)
         except:
             status = "Staff Failed to Add: \n\tStaff ID\t\t:" + staff_id + \
-                     "\n\tStaff ID\t\t\t: " + staff_id + \
-                     "\n\tName\t: " + name + \
-                     "\n\tStatus\t: " + stats + \
+                     "\n\tName\t\t\t: " + name + \
                      "\n\tPlate Number\t: " + plate_num + \
                      "\n\tVaccine Stat\t: " + vaccination_stats
             print(status)
@@ -480,10 +484,10 @@ class Database:
             return
 
         self.db.close()
-        self.insert_vehicle(plate_num, name, veh_brand, road_tax)
+        self.insert_vehicle(plate_num, veh_type, veh_brand, veh_model, road_tax)
 
     def insert_student(self, student_id, name, year, hostel_status, vaccination_stats,
-                       plate_num, veh_brand, road_tax):
+                       plate_num, veh_type, veh_brand, veh_model, road_tax):
         self.db.connect()
 
         student_id = student_id.lower()
@@ -520,7 +524,7 @@ class Database:
             return
 
         self.db.close()
-        self.insert_vehicle(plate_num, name, veh_brand, road_tax)
+        self.insert_vehicle(plate_num, veh_type, veh_brand, veh_model, road_tax)
 
     def insert_officer(self, officer_id, name, username, password, rank,
                        plate_num=None, veh_type=None, veh_brand=None, veh_model=None, road_tax=None):
@@ -593,9 +597,9 @@ db = Database()
 """
     Latest Update
 """
-db.insert_vehicle('CAB1234', 'Anqib', 'Pijot', '2022-12-15')
-# db.insert_student('B999999999', 'ABC', 2, 'Campus', '2 Dose', 'CAB1234', 'Yamaha', '2022-12-15')
-# db.insert_staff('B23456789', 'CBA', "Lecturer", "CBA1234", "2 dose", "Proton", "2022-12-15")
+# db.insert_vehicle('CAB1234', 'Bike', 'Yamaha', 'Y15', '2022-12-15')
+# db.insert_student('B999999999', 'ABC', 2, 'Campus', '2 Dose', 'CAB1234', 'Bike', 'Yamaha', 'Y15', '2022-12-15')
+# db.insert_staff('123456789', 'CBA', '2 Dose', 'CBA1234', 'Car', 'Proton', 'Saga', '2022-12-15')
 # db.insert_admin('123456789', '123', '123')
 # db.insert_officer('1234', 'abc', '123', '123', 'abc')
 # db.insert_officer('4321', 'cba', '123', '123', 'cba', 'AAA1111', 'Bike', 'Yamaha', 'R15', '2022-12-15')

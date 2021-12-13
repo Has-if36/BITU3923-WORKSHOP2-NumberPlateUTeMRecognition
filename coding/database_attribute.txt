@@ -1,0 +1,16 @@
+Vaccination status:
+	- Unvaccinated
+	- Partially vaccinated
+	- Fully vaccinated
+
+Hostel status
+	- Inside Utem
+	- Outside utem
+
+officer rank
+	- Sub-Inspektor (SI)
+	- Sarjan Mejar (SM)
+	- Sarjan (SJN)
+	- Koperal (KPL)
+	- Lans Koperal (L/KPL)
+	- Konstabel (KONST)

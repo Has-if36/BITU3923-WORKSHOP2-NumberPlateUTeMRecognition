@@ -1,9 +1,15 @@
 SentsGuiAdmin
 - Tmbh superadmin?
+- BUG: Something wrong w/ rank (INSERT NULL)
+	POTENTIAL CAUSE: something on GUI
 
 SentsGuiSecurity
 - Add Fail Safe for AI
 	- Tambah Key in no. plate
+	
+Database
+- POTENTIAL BUG: Fatal Error to JOIN Search in SQL (Especially Student JOIN VEHICLE)
+	- POTENTIAL FIX: Set attributes to nullable
 
 
 ===DONE===
