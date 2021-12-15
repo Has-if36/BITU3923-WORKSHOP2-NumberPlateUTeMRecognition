@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.0.3
+-- version 5.0.4
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 05, 2021 at 06:14 AM
--- Server version: 10.4.14-MariaDB
--- PHP Version: 7.2.34
+-- Generation Time: Dec 15, 2021 at 05:09 AM
+-- Server version: 10.4.16-MariaDB
+-- PHP Version: 7.4.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -28,68 +28,121 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `admin` (
-  `staffID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `username` varchar(50) NOT NULL,
-  `password` varchar(50) NOT NULL
+  `staffID` varchar(15) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+  `name` varchar(50) DEFAULT NULL,
+  `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`staffID`, `name`, `password`) VALUES
+('ASD', NULL, 'asd'),
+('root', 'root', 'root');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `entry_log`
+--
+
+CREATE TABLE `entry_log` (
+  `plateNum` varchar(10) NOT NULL,
+  `date` date DEFAULT NULL,
+  `time` time(6) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `car_info`
+-- Table structure for table `officer`
 --
 
-CREATE TABLE `car_info` (
-  `plateNum` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `carBrand` varchar(50) NOT NULL,
-  `roadTaxExpiry` date NOT NULL
+CREATE TABLE `officer` (
+  `officerID` varchar(15) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+  `officerName` varchar(50) DEFAULT NULL,
+  `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL,
+  `rank` varchar(20) DEFAULT NULL,
+  `plateNum` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `officer`
+--
+
+INSERT INTO `officer` (`officerID`, `officerName`, `password`, `rank`, `plateNum`) VALUES
+('QWE', 'QWE', NULL, 'Sub-Inspektor', 'qwe'),
+('RTY', 'RTY', 'rty', 'Sarjan', 'rty');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `officer_info`
+-- Table structure for table `staff`
 --
 
-CREATE TABLE `officer_info` (
-  `officerID` varchar(50) NOT NULL,
-  `officerName` varchar(50) NOT NULL,
-  `username` varchar(50) NOT NULL,
-  `password` int(50) NOT NULL,
-  `rank` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL
+CREATE TABLE `staff` (
+  `staffID` varchar(10) NOT NULL,
+  `name` varchar(50) DEFAULT NULL,
+  `plateNum` varchar(10) DEFAULT NULL,
+  `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `staff`
+--
+
+INSERT INTO `staff` (`staffID`, `name`, `plateNum`, `vaccinationStatus`) VALUES
+('ASD', 'ASD', 'ASD', 'Unvaccinated'),
+('b23456789', 'cba', 'cba1234', '2 dose');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `staff_info`
+-- Table structure for table `student`
 --
 
-CREATE TABLE `staff_info` (
-  `staffID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `status` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL,
-  `vaccinationStatus` varchar(50) NOT NULL
+CREATE TABLE `student` (
+  `studentID` varchar(10) NOT NULL,
+  `name` varchar(50) DEFAULT NULL,
+  `year` int(1) DEFAULT NULL,
+  `hostelStatus` varchar(20) DEFAULT NULL,
+  `plateNum` varchar(10) DEFAULT NULL,
+  `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `student`
+--
+
+INSERT INTO `student` (`studentID`, `name`, `year`, `hostelStatus`, `plateNum`, `vaccinationStatus`) VALUES
+('B031910126', 'naqib', 2, 'campus', 'cab1234', '2 dose'),
+('B031910153', 'Aniq', 2, 'campus', 'CAB1234', '2 dose');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `student_info`
+-- Table structure for table `vehicle`
 --
 
-CREATE TABLE `student_info` (
-  `studentID` varchar(50) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `year` int(5) NOT NULL,
-  `hostelStatus` varchar(50) NOT NULL,
-  `plateNum` varchar(50) NOT NULL,
-  `vaccinationStatus` varchar(50) NOT NULL
+CREATE TABLE `vehicle` (
+  `plateNum` varchar(10) NOT NULL,
+  `vehType` varchar(5) DEFAULT NULL,
+  `vehBrand` varchar(20) DEFAULT NULL,
+  `vehModel` varchar(20) DEFAULT NULL,
+  `roadTaxExpiry` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `vehicle`
+--
+
+INSERT INTO `vehicle` (`plateNum`, `vehType`, `vehBrand`, `vehModel`, `roadTaxExpiry`) VALUES
+('ABC 1234', 'Car', 'Proton', 'Saga', '2021-12-16'),
+('ASD', 'Car', 'ASD', 'ASD', '2021-12-15'),
+('CAB1234', 'Car', 'pijot', 'pijot', '2022-12-15'),
+('QWE', 'Bike', 'QWE', 'QWE', '2021-12-15'),
+('RTY', 'Bike', 'RTY', 'RTY', '2021-12-15');
 
 --
 -- Indexes for dumped tables
@@ -102,28 +155,34 @@ ALTER TABLE `admin`
   ADD PRIMARY KEY (`staffID`);
 
 --
--- Indexes for table `car_info`
+-- Indexes for table `entry_log`
 --
-ALTER TABLE `car_info`
+ALTER TABLE `entry_log`
   ADD PRIMARY KEY (`plateNum`);
 
 --
--- Indexes for table `officer_info`
+-- Indexes for table `officer`
 --
-ALTER TABLE `officer_info`
-  ADD PRIMARY KEY (`officerID`);
+ALTER TABLE `officer`
+  ADD PRIMARY KEY (`officerID`) USING BTREE;
 
 --
--- Indexes for table `staff_info`
+-- Indexes for table `staff`
 --
-ALTER TABLE `staff_info`
-  ADD PRIMARY KEY (`staffID`);
+ALTER TABLE `staff`
+  ADD PRIMARY KEY (`staffID`) USING BTREE;
 
 --
--- Indexes for table `student_info`
+-- Indexes for table `student`
 --
-ALTER TABLE `student_info`
-  ADD PRIMARY KEY (`studentID`);
+ALTER TABLE `student`
+  ADD PRIMARY KEY (`studentID`) USING BTREE;
+
+--
+-- Indexes for table `vehicle`
+--
+ALTER TABLE `vehicle`
+  ADD PRIMARY KEY (`plateNum`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
