@@ -11,8 +11,10 @@ import datetime
 import sys
 import wmi
 import re
+import os
 import math
-from Database import Database
+from Database import MySQL
+from Database import Filezilla
 
 MIN_WIDTH = 853
 MIN_HEIGHT = 480
@@ -23,8 +25,14 @@ CP = [['#E1D89F', '#171010', '#EEEEEE', "#D89216", None,
       ['#2B2B2B', '#EEEEEE', '#5C527F', "#423F3E", None,
        '#261C2C', '#FFD369', '#5C527F', '#5C527F', '#EEEEEE',
        '#6E85B2', 'black', None, '#5C527F', 'black']]
-server_setting = ["localhost", None, None, None]
+server_setting = ["localhost", None, None, None, 'pnradmin', 'pnradmin']
 db = None
+fl = None
+TEMP_FOLDER = 'temp'
+DRIVER_FOLDER = 'driver'
+PLT_NUM_FOLDER = 'plate_number'
+PRIVILEGE = ''
+CURR_USER = ''
 
 """
     Search Tag: Database Connection
@@ -38,7 +46,7 @@ class SentsGui(Tk):
                 super().__init__(root)
                 title = "Server Setting "
                 width = 514  # round(self.root.winfo_width() / 2)
-                height = 318  # round(self.root.winfo_height() / 1.2) # 530
+                height = 440  # round(self.root.winfo_height() / 1.2) # 530
                 # print(width, height)
                 x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
                 y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
@@ -57,43 +65,59 @@ class SentsGui(Tk):
                 self.main_canvas.update()
 
                 self.server_frame = Frame(self.main_canvas, bg=CP[root.theme][5])
-                font_setting = "Calibri " + str(round(root.font_size * 1)) + " bold"
+                font_setting = "Calibri " + str(18) + " bold"  # round(root.font_size * 1)
                 self.server_label = Label(self.main_canvas, font=font_setting, text="Server Setting",
                                           bg=CP[root.theme][5], fg=CP[root.theme][1])
                 self.server_label.place(x=0, y=0)
                 self.server_label.update()
 
-                font_setting = "Calibri " + str(round(root.font_size * 0.95))
-                self.host_label = Label(self.server_frame, font=font_setting, text="IP Address : ",
+                font_setting = "Calibri " + str(12)  # round(root.font_size * 0.95)
+                self.host_label = Label(self.server_frame, font=font_setting, text="IP Address\t: ",
                                         bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.user_label = Label(self.server_frame, font=font_setting, text="User\t  : ",
-                                        bg=CP[root.theme][5], fg=CP[root.theme][1])
-                self.pass_label = Label(self.server_frame, font=font_setting, text="Password\t  : ",
-                                        bg=CP[root.theme][5], fg=CP[root.theme][1])
+                self.user_sql_label = Label(self.server_frame, font=font_setting, text="User SQL\t\t: ",
+                                            bg=CP[root.theme][5], fg=CP[root.theme][1])
+                self.pass_sql_label = Label(self.server_frame, font=font_setting, text="Pass. SQL\t\t: ",
+                                            bg=CP[root.theme][5], fg=CP[root.theme][1])
+                self.user_fl_label = Label(self.server_frame, font=font_setting, text="User FL\t\t: ",
+                                           bg=CP[root.theme][5], fg=CP[root.theme][1])
+                self.pass_fl_label = Label(self.server_frame, font=font_setting, text="Pass. FL\t\t: ",
+                                           bg=CP[root.theme][5], fg=CP[root.theme][1])
                 self.server_label.place(x=0, y=0)
                 self.host_label.place(x=0, y=0)
-                self.user_label.place(x=0, y=0)
-                self.pass_label.place(x=0, y=0)
+                self.user_sql_label.place(x=0, y=0)
+                self.pass_sql_label.place(x=0, y=0)
+                self.user_fl_label.place(x=0, y=0)
+                self.pass_fl_label.place(x=0, y=0)
                 self.server_label.update()
                 self.host_label.update()
-                self.user_label.update()
-                self.pass_label.update()
+                self.user_sql_label.update()
+                self.pass_sql_label.update()
+                self.user_fl_label.update()
+                self.pass_fl_label.update()
                 self.server_label.place(x=self.main_canvas.winfo_width() / 2 - self.server_label.winfo_width() / 2,
-                                        y=self.main_canvas.winfo_width() / 32)
+                                        y=self.main_canvas.winfo_width() / 12)
                 self.server_label.update()
                 y_coord = 0
                 self.host_label.place(x=0, y=y_coord)
                 y_coord = y_coord + gap
-                self.user_label.place(x=0, y=y_coord)
+                self.user_sql_label.place(x=0, y=y_coord)
                 y_coord = y_coord + gap
-                self.pass_label.place(x=0, y=y_coord)
+                self.pass_sql_label.place(x=0, y=y_coord)
+                y_coord = y_coord + gap
+                self.user_fl_label.place(x=0, y=y_coord)
+                y_coord = y_coord + gap
+                self.pass_fl_label.place(x=0, y=y_coord)
                 self.host_label.update()
-                self.user_label.update()
-                self.pass_label.update()
+                self.user_sql_label.update()
+                self.pass_sql_label.update()
+                self.user_fl_label.update()
+                self.pass_fl_label.update()
 
                 self.host_str = StringVar()
-                self.user_str = StringVar()
-                self.pass_str = StringVar()
+                self.user_sql_str = StringVar()
+                self.pass_sql_str = StringVar()
+                self.user_fl_str = StringVar()
+                self.pass_fl_str = StringVar()
 
                 with open('setting.txt', 'r') as f:
                     lines = f.readlines()
@@ -103,89 +127,151 @@ class SentsGui(Tk):
                             self.host_str.set(server_setting[0])
                             if server_setting[0] == "":
                                 server_setting[0] = None
-                        elif line.find("user=") == 0:
+                        elif line.find("user_sql=") == 0:
                             server_setting[2] = line.split('=')[1].replace("\n", "")
-                            self.user_str.set(server_setting[2])
+                            self.user_sql_str.set(server_setting[2])
                             if server_setting[2] == "":
                                 server_setting[2] = None
-                        elif line.find("pass=") == 0:
+                        elif line.find("pass_sql=") == 0:
                             server_setting[3] = line.split('=')[1].replace("\n", "")
-                            self.pass_str.set(server_setting[3])
+                            self.pass_sql_str.set(server_setting[3])
                             if server_setting[3] == "":
                                 server_setting[3] = None
+                        elif line.find("user_fl=") == 0:
+                            server_setting[4] = line.split('=')[1].replace("\n", "")
+                            self.user_fl_str.set(server_setting[4])
+                            if server_setting[4] == "":
+                                server_setting[4] = None
+                        elif line.find("pass_fl=") == 0:
+                            server_setting[5] = line.split('=')[1].replace("\n", "")
+                            self.pass_fl_str.set(server_setting[5])
+                            if server_setting[5] == "":
+                                server_setting[5] = None
 
-                font_setting = "Calibri " + str(round(math.pow(root.font_size, 0.87)))
+                font_setting = "Calibri " + str(12)  # round(math.pow(root.font_size, 0.87))
                 ttk.Style().configure('pad.TEntry', padding='2 1 2 1')
                 self.host_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.host_str,
                                             font=font_setting, style='pad.TEntry')
-                self.user_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.user_str,
-                                            font=font_setting, style='pad.TEntry')
-                self.pass_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.pass_str,
-                                            font=font_setting, style='pad.TEntry')
+                self.user_sql_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.user_sql_str,
+                                                font=font_setting, style='pad.TEntry')
+                self.pass_sql_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.pass_sql_str,
+                                                font=font_setting, style='pad.TEntry')
+                self.user_fl_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.user_fl_str,
+                                               font=font_setting, style='pad.TEntry')
+                self.pass_fl_entry = ttk.Entry(self.server_frame, width=entry_length, textvariable=self.pass_fl_str,
+                                               font=font_setting, style='pad.TEntry')
                 self.host_entry.place(x=0, y=0)
-                self.user_entry.place(x=0, y=0)
-                self.pass_entry.place(x=0, y=0)
+                self.user_sql_entry.place(x=0, y=0)
+                self.pass_sql_entry.place(x=0, y=0)
+                self.user_fl_entry.place(x=0, y=0)
+                self.pass_fl_entry.place(x=0, y=0)
                 self.host_entry.update()
-                self.user_entry.update()
-                self.pass_entry.update()
+                self.user_sql_entry.update()
+                self.pass_sql_entry.update()
+                self.user_fl_entry.update()
+                self.pass_fl_entry.update()
                 y_coord = 0
                 self.host_entry.place(x=self.host_label.winfo_width(),
                                       y=y_coord +
                                         (self.host_label.winfo_height() / 2 - self.host_entry.winfo_height() / 2))
                 y_coord = y_coord + gap
-                self.user_entry.place(x=self.user_label.winfo_width(),
-                                      y=y_coord +
-                                        (self.user_label.winfo_height() / 2 - self.user_entry.winfo_height() / 2))
+                self.user_sql_entry.place(x=self.user_sql_label.winfo_width(),
+                                          y=y_coord +
+                                            (
+                                                    self.user_sql_label.winfo_height() / 2 - self.user_sql_entry.winfo_height() / 2))
                 y_coord = y_coord + gap
-                self.pass_entry.place(x=self.pass_label.winfo_width(),
-                                      y=y_coord +
-                                        (self.pass_label.winfo_height() / 2 - self.pass_entry.winfo_height() / 2))
+                self.pass_sql_entry.place(x=self.pass_sql_label.winfo_width(),
+                                          y=y_coord +
+                                            (
+                                                    self.pass_sql_label.winfo_height() / 2 - self.pass_sql_entry.winfo_height() / 2))
+                y_coord = y_coord + gap
+                self.user_fl_entry.place(x=self.user_fl_label.winfo_width(),
+                                         y=y_coord +
+                                           (
+                                                   self.user_fl_label.winfo_height() / 2 - self.user_fl_entry.winfo_height() / 2))
+                y_coord = y_coord + gap
+                self.pass_fl_entry.place(x=self.pass_fl_label.winfo_width(),
+                                         y=y_coord +
+                                           (
+                                                   self.pass_fl_label.winfo_height() / 2 - self.pass_fl_entry.winfo_height() / 2))
                 self.host_entry.update()
-                self.user_entry.update()
-                self.pass_entry.update()
+                self.user_sql_entry.update()
+                self.pass_sql_entry.update()
+                self.user_fl_entry.update()
+                self.pass_fl_entry.update()
 
-                font_setting = "Calibri " + str(round(root.font_size * 0.65))
+                font_setting = "Calibri " + str(10)  # round(root.font_size * 0.65)
                 self.host_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
                                            bg=CP[root.theme][10], fg=CP[root.theme][11],
                                            activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
                                            command=lambda a=1, b=root: self.btn_event(a, b))
-                self.user_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
-                                           bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                           activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                           command=lambda a=3, b=root: self.btn_event(a, b))
-                self.pass_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
-                                           bg=CP[root.theme][10], fg=CP[root.theme][11],
-                                           activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                           command=lambda a=4, b=root: self.btn_event(a, b))
+                self.user_sql_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
+                                               bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                               activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                               command=lambda a=3, b=root: self.btn_event(a, b))
+                self.pass_sql_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
+                                               bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                               activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                               command=lambda a=4, b=root: self.btn_event(a, b))
+                self.user_fl_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
+                                              bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                              activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                              command=lambda a=5, b=root: self.btn_event(a, b))
+                self.pass_fl_def_btn = Button(self.server_frame, font=font_setting, text="Default", padx=2,
+                                              bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                              activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                              command=lambda a=6, b=root: self.btn_event(a, b))
                 self.host_def_btn.place(x=0, y=0)
-                self.user_def_btn.place(x=0, y=0)
-                self.pass_def_btn.place(x=0, y=0)
+                self.user_sql_def_btn.place(x=0, y=0)
+                self.pass_sql_def_btn.place(x=0, y=0)
+                self.user_fl_def_btn.place(x=0, y=0)
+                self.pass_fl_def_btn.place(x=0, y=0)
                 self.host_def_btn.update()
-                self.user_def_btn.update()
-                self.pass_def_btn.update()
+                self.user_sql_def_btn.update()
+                self.pass_sql_def_btn.update()
+                self.user_fl_def_btn.update()
+                self.pass_fl_def_btn.update()
                 y_coord = 0
                 self.host_def_btn.place(x=self.host_label.winfo_width() + self.host_entry.winfo_width() + 10,
                                         y=y_coord +
                                           (self.host_label.winfo_height() / 2 - self.host_def_btn.winfo_height() / 2))
                 y_coord = y_coord + gap
-                self.user_def_btn.place(x=self.user_label.winfo_width() + self.user_entry.winfo_width() + 10,
-                                        y=y_coord +
-                                          (self.host_label.winfo_height() / 2 - self.user_def_btn.winfo_height() / 2))
+                self.user_sql_def_btn.place(
+                    x=self.user_sql_label.winfo_width() + self.user_sql_entry.winfo_width() + 10,
+                    y=y_coord +
+                      (
+                              self.host_label.winfo_height() / 2 - self.user_sql_def_btn.winfo_height() / 2))
                 y_coord = y_coord + gap
-                self.pass_def_btn.place(x=self.pass_label.winfo_width() + self.pass_entry.winfo_width() + 10,
-                                        y=y_coord +
-                                          (self.host_label.winfo_height() / 2 - self.pass_def_btn.winfo_height() / 2))
+                self.pass_sql_def_btn.place(
+                    x=self.pass_sql_label.winfo_width() + self.pass_sql_entry.winfo_width() + 10,
+                    y=y_coord +
+                      (
+                              self.host_label.winfo_height() / 2 - self.pass_sql_def_btn.winfo_height() / 2))
+                y_coord = y_coord + gap
+                self.user_fl_def_btn.place(
+                    x=self.user_fl_label.winfo_width() + self.user_fl_entry.winfo_width() + 10,
+                    y=y_coord +
+                      (
+                              self.host_label.winfo_height() / 2 - self.user_fl_def_btn.winfo_height() / 2))
+                y_coord = y_coord + gap
+                self.pass_fl_def_btn.place(
+                    x=self.pass_fl_label.winfo_width() + self.pass_fl_entry.winfo_width() + 10,
+                    y=y_coord +
+                      (
+                              self.host_label.winfo_height() / 2 - self.pass_fl_def_btn.winfo_height() / 2))
                 # y_coord = y_coord + gap * 1.1
                 self.host_def_btn.update()
-                self.user_def_btn.update()
-                self.pass_def_btn.update()
+                self.user_sql_def_btn.update()
+                self.pass_sql_def_btn.update()
+                self.user_fl_def_btn.update()
+                self.pass_fl_def_btn.update()
 
-                font_setting = "Calibri " + str(round(root.font_size * 0.65))
+                font_setting = "Calibri " + str(10)  # round(root.font_size * 0.65)
                 self.stats_lbl = Label(self.server_frame, font=font_setting, text="Failed to Connect",
                                        bg=CP[root.theme][5], fg=CP[root.theme][5])
                 self.stats_lbl.place(x=width, y=height)
                 self.stats_lbl.update()
-                y_coord = y_coord + self.pass_label.winfo_height() + 3
+                y_coord = y_coord + self.pass_sql_label.winfo_height() + 3
                 self.stats_lbl.place(x=10, y=y_coord)
                 self.stats_lbl.update()
                 y_coord = y_coord + self.stats_lbl.winfo_height() + 10
@@ -199,15 +285,15 @@ class SentsGui(Tk):
                 self.ok_btn = Button(self.server_frame, font=font_setting, text="Ok", width=8,
                                      bg=CP[root.theme][10], fg=CP[root.theme][11],
                                      activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                     command=lambda a=5, b=root: self.btn_event(a, b))
+                                     command=lambda a=7, b=root: self.btn_event(a, b))
                 self.conn_btn = Button(self.server_frame, font=font_setting, text="Test", width=8,
                                        bg=CP[root.theme][10], fg=CP[root.theme][11],
                                        activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                       command=lambda a=6, b=root: self.btn_event(a, b))
+                                       command=lambda a=8, b=root: self.btn_event(a, b))
                 self.cancel_btn = Button(self.server_frame, font=font_setting, text="Cancel", width=8,
                                          bg=CP[root.theme][10], fg=CP[root.theme][11],
                                          activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
-                                         command=lambda a=7, b=root: self.btn_event(a, b))
+                                         command=lambda a=9, b=root: self.btn_event(a, b))
                 self.ok_btn.place(x=width, y=height)
                 self.conn_btn.place(x=width, y=height)
                 self.cancel_btn.place(x=width, y=height)
@@ -229,7 +315,7 @@ class SentsGui(Tk):
                                             height=self.server_frame.winfo_height() + self.ok_btn.winfo_height())
                 self.server_frame.update()
                 self.server_frame.place(x=self.main_canvas.winfo_width() / 2 - self.server_frame.winfo_width() / 2,
-                                        y=self.main_canvas.winfo_height() / 2 - self.server_frame.winfo_height() / 2)
+                                        y=self.main_canvas.winfo_height() / 2 - self.server_frame.winfo_height() / 2.5)
                 self.server_frame.update()
 
             def btn_event(self, type, root):
@@ -237,14 +323,20 @@ class SentsGui(Tk):
                 if type == 1:
                     self.host_str.set("localhost")
                 elif type == 3:
-                    self.user_str.set("")
+                    self.user_sql_str.set("")
                 elif type == 4:
-                    self.pass_str.set("")
+                    self.pass_sql_str.set("")
                 elif type == 5:
+                    self.user_fl_str.set("pnradmin")
+                elif type == 6:
+                    self.pass_fl_str.set("pnradmin")
+                elif type == 7:
                     # Ok Stuff
                     server_setting[0] = self.host_str.get()
-                    server_setting[2] = self.user_str.get()
-                    server_setting[3] = self.pass_str.get()
+                    server_setting[2] = self.user_sql_str.get()
+                    server_setting[3] = self.pass_sql_str.get()
+                    server_setting[4] = self.user_fl_str.get()
+                    server_setting[5] = self.pass_fl_str.get()
 
                     f = open('setting.txt', 'r')
                     lines = f.readlines()
@@ -255,11 +347,17 @@ class SentsGui(Tk):
                         if line.find("host=") == 0:
                             line = "host=" + server_setting[0] + "\n"
                             f.write(line)
-                        elif line.find("user=") == 0:
-                            line = "user=" + server_setting[2] + "\n"
+                        elif line.find("user_sql=") == 0:
+                            line = "user_sql=" + server_setting[2] + "\n"
                             f.write(line)
-                        elif line.find("pass=") == 0:
-                            line = "pass=" + server_setting[3] + "\n"
+                        elif line.find("pass_sql=") == 0:
+                            line = "pass_sql=" + server_setting[3] + "\n"
+                            f.write(line)
+                        elif line.find("user_fl=") == 0:
+                            line = "user_fl=" + server_setting[4] + "\n"
+                            f.write(line)
+                        elif line.find("pass_fl=") == 0:
+                            line = "pass_fl=" + server_setting[5] + "\n"
                             f.write(line)
                         else:
                             f.write(line)
@@ -271,14 +369,16 @@ class SentsGui(Tk):
                     # print(server_setting)
 
                     self.destroy()
-                elif type == 6:
-                    if db.update_connection(host=self.host_str.get(), user=self.user_str.get(),
-                                            password=self.pass_str.get()):
+                elif type == 8:
+                    if db.update_connection(host=self.host_str.get(), user=self.user_sql_str.get(),
+                                            password=self.pass_sql_str.get()) and \
+                            fl.update_connection(host=self.host_str.get(), user=self.user_fl_str.get(),
+                                                 password=self.pass_fl_str.get()):
                         self.stats_lbl.configure(text="Successfully Connect", fg=CP[root.theme][6])
                     else:
                         self.stats_lbl.configure(text="Failed to Connect", fg=CP[root.theme][6])
                     self.after(3000, lambda a=root: self.status_fade(a))
-                elif type == 7:
+                elif type == 9:
                     self.destroy()
 
             def status_fade(self, root):
@@ -317,6 +417,7 @@ class SentsGui(Tk):
             self.login_user_frame = Frame(self, bg=CP[theme][0])
             self.login_user_frame.place(x=self.winfo_width(), y=self.winfo_height())
 
+            y_coord = 0
             font_setting = "Calibri " + str(round(font_size * 1))
             self.login_user_text = Label(self.login_user_frame, text="Staff ID\t : ", bg=CP[theme][0], fg=CP[theme][1],
                                          font=font_setting)
@@ -328,38 +429,43 @@ class SentsGui(Tk):
             self.login_pass_text.place(x=0, y=self.login_user_text.winfo_height() * 1.5)
             self.login_pass_text.update()
 
+            y_coord = round(0.05 * self.login_user_text.winfo_height())
             font_setting = "Calibri " + str(round(font_size * 0.85))
             self.login_user_strvar = StringVar()
             self.login_user_field = ttk.Entry(self.login_user_frame, width=20, textvariable=self.login_user_strvar,
                                               font=font_setting)
-            self.login_user_field.place(x=self.login_user_text.winfo_width(),
-                                        y=round(0.05 * self.login_user_text.winfo_height()))
+            self.login_user_field.place(x=self.login_user_text.winfo_width(), y=y_coord)
 
             self.login_pass_strvar = StringVar()
+            y_coord += self.login_user_text.winfo_height() * 1.5
             self.login_pass_field = ttk.Entry(self.login_user_frame, width=20, textvariable=self.login_pass_strvar,
                                               font=font_setting, show='*')
-            self.login_pass_field.place(x=self.login_pass_text.winfo_width(),
-                                        y=self.login_user_text.winfo_height() * 1.5 +
-                                          round(0.05 * self.login_user_text.winfo_height()))
+            self.login_pass_field.place(x=self.login_pass_text.winfo_width(), y=y_coord)
             self.login_user_field.update()
             self.login_pass_field.update()
 
+            y_coord += self.login_pass_text.winfo_height()
+            font_setting = "Calibri " + str(round(font_size * 0.7))
+            self.message_lbl = Label(self.login_user_frame, text="", font=font_setting,
+                                     bg=CP[theme][0], fg=CP[theme][6])
+            self.message_lbl.place(x=self.login_pass_text.winfo_width(), y=y_coord)
+            self.message_lbl.update()
+
+            y_coord += round(self.message_lbl.winfo_height() * 1.5)
             font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
             self.login_btn = Button(self.login_user_frame, bg=CP[theme][5], fg=CP[theme][1],
                                     activebackground=CP[theme][8], activeforeground=CP[theme][9], border=1,
                                     text="Login", font=font_setting, padx=10, pady=1,
                                     command=lambda a=1: self.button_event(a))
-            self.login_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
+            self.login_btn.place(x=self.login_user_frame.winfo_width(), y=y_coord)
             self.login_btn.update()
             self.login_user_frame.config(width=self.login_user_text.winfo_width() + self.login_user_field.winfo_width(),
-                                         height=self.login_user_text.winfo_height() * 2.5 +
-                                                self.login_pass_text.winfo_height())
+                                         height=self.login_user_text.winfo_height())
             self.login_user_frame.update()
             self.login_btn.place(x=round(self.login_user_frame.winfo_width() / 2 - self.login_btn.winfo_width() / 2),
-                                 y=round(self.login_user_text.winfo_height() * 2.5 +
-                                         self.login_pass_text.winfo_height()))
+                                 y=y_coord)
 
-            self.login_user_frame.config(height=self.login_user_frame.winfo_height() + self.login_btn.winfo_height())
+            self.login_user_frame.config(height=y_coord + self.login_btn.winfo_height())
             self.login_user_frame.update()
             self.login_user_frame.place(x=width / 2 - self.login_user_frame.winfo_width() / 2,
                                         y=height * 3 / 4 - self.login_user_frame.winfo_height() / 2)
@@ -381,6 +487,7 @@ class SentsGui(Tk):
                 self.place(x=0, y=0)
 
         def button_event(self, type):
+            global PRIVILEGE, CURR_USER
             if type == 1:
                 """
                 # Input
@@ -388,35 +495,55 @@ class SentsGui(Tk):
                     self.login_pass_strvar.get()
                 """
 
+                msg = ''
                 if self.login_user_strvar.get() and self.login_pass_strvar.get():
                     # Database Connection
                     match_account = False
-                    privilege = None
+
+                    match_account, msg = db.login_user(self.login_user_strvar.get(), self.login_pass_strvar.get())
 
                     """
-                    # Output
+                    Output
                         match_account
-                        privilege
+                        msg
                     """
 
                     # Login Frame
                     if match_account:
-                        pass
+                        self.canvas_index = 1
+                        self.root.set_canvas_index(self.canvas_index)
+                        self.place_forget()
+                        self.root.set_canvas()
+
+                        if self.login_user_strvar.get().lower() == 'root':
+                            PRIVILEGE = 'root'
+                        else:
+                            PRIVILEGE = 'admin'
+                        print("Login as", PRIVILEGE)
+                        CURR_USER = self.login_user_strvar.get()
                     else:
-                        print("Incorrect Staff ID or Password")
+                        self.message_lbl.configure(text=msg)
+                        self.message_lbl.after(3000, lambda: message_fade())
+                        print(msg)
 
                     # Temporary Login
-                    self.canvas_index = 1
-                    self.root.set_canvas_index(self.canvas_index)
-                    self.place_forget()
-                    self.root.set_canvas()
+                    # self.canvas_index = 1
+                    # self.root.set_canvas_index(self.canvas_index)
+                    # self.place_forget()
+                    # self.root.set_canvas()
                     self.login_user_strvar.set("")
                     self.login_pass_strvar.set("")
                     self.login_user_field.focus_set()
                 else:
-                    print("All Field Must be Filled")
+                    msg = "All Field Must be Filled"
+                    self.message_lbl.configure(text=msg)
+                    self.message_lbl.after(3000, lambda: message_fade())
+                    print(msg)
             elif type == 2:
                 self.setting = self.Setting(self.root)
+
+            def message_fade():
+                self.message_lbl.configure(text='')
 
         def update_res(self, root):
             width = root.winfo_width()
@@ -451,34 +578,45 @@ class SentsGui(Tk):
             self.login_pass_text.place(x=0, y=self.login_user_text.winfo_height() * 1.5)
             self.login_pass_text.update()
 
+            y_coord = round(0.05 * self.login_user_text.winfo_height())
             font_setting = "Calibri " + str(round(font_size * 0.85))
             self.login_user_field.configure(font=font_setting)
-            self.login_user_field.place(x=self.login_user_text.winfo_width(),
-                                        y=round(0.05 * self.login_user_text.winfo_height()))
+            self.login_user_field.place(x=self.login_user_text.winfo_width(), y=y_coord)
 
+            y_coord += self.login_user_text.winfo_height() * 1.5
             self.login_pass_field.configure(font=font_setting)
-            self.login_pass_field.place(x=self.login_pass_text.winfo_width(),
-                                        y=self.login_user_text.winfo_height() * 1.5 +
-                                          round(0.05 * self.login_user_text.winfo_height()))
+            self.login_pass_field.place(x=self.login_pass_text.winfo_width(), y=y_coord)
             self.login_user_field.update()
             self.login_pass_field.update()
 
+            y_coord += self.login_pass_text.winfo_height()
+            font_setting = "Calibri " + str(round(font_size * 0.7))
+            self.message_lbl.configure(font=font_setting)
+            self.message_lbl.place(x=self.login_pass_text.winfo_width(), y=y_coord)
+            self.message_lbl.update()
+
+            y_coord += round(self.message_lbl.winfo_height() * 1.5)
             font_setting = "Calibri " + str(round(font_size * 0.75)) + " bold"
             self.login_btn.configure(font=font_setting)
-            self.login_btn.place(x=self.login_user_frame.winfo_width(), y=self.login_user_frame.winfo_height())
+            self.login_btn.place(x=self.login_user_frame.winfo_width(),
+                                 y=self.login_user_frame.winfo_height())
             self.login_btn.update()
             self.login_user_frame.config(width=self.login_user_text.winfo_width() + self.login_user_field.winfo_width(),
                                          height=self.login_user_text.winfo_height() * 2.5 +
                                                 self.login_pass_text.winfo_height())
             self.login_user_frame.update()
             self.login_btn.place(x=round(self.login_user_frame.winfo_width() / 2 - self.login_btn.winfo_width() / 2),
-                                 y=round(self.login_user_text.winfo_height() * 2.5 +
-                                         self.login_pass_text.winfo_height()))
+                                 y=y_coord)
 
-            self.login_user_frame.config(height=self.login_user_frame.winfo_height() + self.login_btn.winfo_height())
+            self.login_user_frame.config(height=y_coord + self.login_btn.winfo_height())
             self.login_user_frame.update()
             self.login_user_frame.place(x=width / 2 - self.login_user_frame.winfo_width() / 2,
                                         y=height * 3 / 4 - self.login_user_frame.winfo_height() / 2)
+
+            font_setting = "Calibri " + str(round(font_size * 0.7)) + " bold"
+            self.setting_btn.configure(font=font_setting)
+            self.setting_btn.place(x=root.winfo_width() - (root.margin_width / 2 + self.setting_btn.winfo_width() / 2),
+                                   y=root.margin_height / 2 - self.setting_btn.winfo_height() / 2)
 
             self.update()
 
@@ -499,6 +637,7 @@ class SentsGui(Tk):
             self.login_user_frame.configure(bg=CP[theme][0])
             self.login_user_text.configure(bg=CP[theme][0], fg=CP[theme][1])
             self.login_pass_text.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.message_lbl.configure(bg=CP[theme][0], fg=CP[theme][1])
             self.login_btn.configure(bg=CP[theme][5], fg=CP[theme][1],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9])
             self.setting_btn.configure(bg=CP[theme][5], fg=CP[theme][1],
@@ -528,7 +667,7 @@ class SentsGui(Tk):
             self.main_canvas.update()
 
             self.noti_frame = Frame(self.main_canvas, bg=CP[root.theme][5])
-            font_setting = "Calibri " + str(round(root.font_size * size))
+            font_setting = "Calibri " + str(round(18 * size))  # round(root.font_size * size)
             self.noti_label = Label(self.main_canvas, font=font_setting, text=desc,
                                     bg=CP[root.theme][5], fg=CP[root.theme][1])
             self.noti_label.place(x=0, y=0)
@@ -536,7 +675,7 @@ class SentsGui(Tk):
             self.noti_label.place(x=width / 2 - self.noti_label.winfo_width() / 2,
                                   y=height / 4)  # self.noti_label.winfo_height()/2
 
-            font_setting = "Calibri " + str(round(root.font_size * 0.65))
+            font_setting = "Calibri " + str(10)  # round(root.font_size * 0.65)
             self.ok_btn = Button(self.main_canvas, font=font_setting, text="Ok", width=8,
                                  bg=CP[root.theme][10], fg=CP[root.theme][11],
                                  activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
@@ -669,6 +808,34 @@ class SentsGui(Tk):
             self.place_forget()
             self.root.set_canvas()
 
+            if canvas_index == 0:
+                self.view_driver.search_str.set("")
+                self.view_driver.driver_list.clear()
+                self.view_admin.admin_list.clear()
+                self.view_admin.search_str.set("")
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
+                self.view_driver.num_pg_label.place_forget()
+                self.view_driver.prev_label.place_forget()
+                self.view_driver.next_label.place_forget()
+                # self.add_driver.clear(main_layout, font_size)
+                # self.add_admin.clear(main_layout)
+                # self.prof_admin.clear()
+
+                # self.view_driver_btn.configure(state=DISABLED)
+                # self.reg_driver_btn.configure(state=NORMAL)
+                # self.view_admin_btn.configure(state=NORMAL)
+                # self.reg_admin_btn.configure(state=NORMAL)
+                # self.prof_btn.configure(state=NORMAL)
+                # self.view_driver.place(x=margin_width, y=margin_height)
+                # self.add_driver.place_forget()
+                # self.view_admin.place_forget()
+                # self.view_admin.search_frame.place_forget()
+                # self.add_admin.place_forget()
+                # self.prof_admin.place_forget()
+                # self.view_driver.update_res(root)
+
         def update_res(self, root):
             width = root.winfo_width()
             height = root.winfo_height()
@@ -688,9 +855,39 @@ class SentsGui(Tk):
             self.prof_btn.configure(font=font_setting)
             self.logout_btn.configure(font=font_setting)
 
-            if self.canvas_index == 1:
+            if self.canvas_index == 0:
+                self.view_driver.search_str.set("")
+                self.view_driver.driver_list.clear()
                 self.view_admin.admin_list.clear()
                 self.view_admin.search_str.set("")
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
+                self.view_driver.num_pg_label.place_forget()
+                self.view_driver.prev_label.place_forget()
+                self.view_driver.next_label.place_forget()
+                self.add_driver.clear(main_layout, font_size)
+                self.add_admin.clear(main_layout)
+                self.prof_admin.clear()
+
+                self.view_driver_btn.configure(state=DISABLED)
+                self.reg_driver_btn.configure(state=NORMAL)
+                self.view_admin_btn.configure(state=NORMAL)
+                self.reg_admin_btn.configure(state=NORMAL)
+                self.prof_btn.configure(state=NORMAL)
+                self.view_driver.place(x=margin_width, y=margin_height)
+                self.add_driver.place_forget()
+                self.view_admin.place_forget()
+                self.view_admin.search_frame.place_forget()
+                self.add_admin.place_forget()
+                self.prof_admin.place_forget()
+                self.view_driver.update_res(root)
+            elif self.canvas_index == 1:
+                self.view_admin.admin_list.clear()
+                self.view_admin.search_str.set("")
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
 
                 self.view_driver_btn.configure(state=DISABLED)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -712,6 +909,10 @@ class SentsGui(Tk):
                 self.view_driver.num_pg_label.place_forget()
                 self.view_driver.prev_label.place_forget()
                 self.view_driver.next_label.place_forget()
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
+                self.add_driver.clear(main_layout, font_size)
 
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=DISABLED)
@@ -753,6 +954,10 @@ class SentsGui(Tk):
                 self.view_driver.num_pg_label.place_forget()
                 self.view_driver.prev_label.place_forget()
                 self.view_driver.next_label.place_forget()
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
+                self.add_admin.clear(main_layout)
 
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -775,6 +980,10 @@ class SentsGui(Tk):
                 self.view_driver.num_pg_label.place_forget()
                 self.view_driver.prev_label.place_forget()
                 self.view_driver.next_label.place_forget()
+                self.view_admin.num_pg_label.place_forget()
+                self.view_admin.prev_label.place_forget()
+                self.view_admin.next_label.place_forget()
+                self.prof_admin.clear()
 
                 self.view_driver_btn.configure(state=NORMAL)
                 self.reg_driver_btn.configure(state=NORMAL)
@@ -878,12 +1087,13 @@ class SentsGui(Tk):
             self.sub_frame = []
             self.page_index = 0
             self.canvas_item = []
+            self.frame_item = []
 
             font_setting = "Calibri " + str(round(math.pow(font_size, 1)))
             self.num_pg_label = Label(root, text="1 / 1", font=font_setting, bg=CP[theme][0], fg=CP[theme][1])
             font_setting = "Calibri " + str(round(math.pow(font_size, 1.1))) + " bold"
-            self.prev_label = Label(root, text="<", font=font_setting, bg=CP[theme][0], fg=CP[theme][8], padx=10)
-            self.next_label = Label(root, text=">", font=font_setting, bg=CP[theme][0], fg=CP[theme][8], padx=10)
+            self.prev_label = Label(root, text="<", font=font_setting, bg=CP[theme][0], fg=CP[theme][1], padx=10)
+            self.next_label = Label(root, text=">", font=font_setting, bg=CP[theme][0], fg=CP[theme][1], padx=10)
             self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
             self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
             self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
@@ -956,7 +1166,8 @@ class SentsGui(Tk):
             # self.search_sort_cbox.place(x=coord_x, y=0)
             # self.search_sort_cbox.update()
 
-            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width) # self.search_sort_cbox.winfo_width() +
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(
+                margin_width)  # self.search_sort_cbox.winfo_width() +
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
             self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][1],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
@@ -995,11 +1206,182 @@ class SentsGui(Tk):
 
                 self.view_canvas.update()
                 y_coord = 0
+                GAP = round(0.25 / 100 * root.winfo_width())
                 frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_item_ind = (self.page_index - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                path_driver = os.path.join(TEMP_FOLDER, DRIVER_FOLDER)
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if self.page_index == division:
+                    last_page = True
+                else:
+                    last_page = False
+
+                # for file in os.listdir('./temp/driver'):
+                #     os.remove(file)
+
                 for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
                     frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
                     self.view_canvas.coords(self.canvas_item[i], (0, y_coord))
                     y_coord = y_coord + frame_height
+
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        # print(frame_item_ind + i, i, last_page)
+                        font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                        self.frame_item[frame_item_ind + i][2].configure(font=font_setting)
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.65))
+                        self.frame_item[frame_item_ind + i][3].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][4].configure(font=font_setting)
+
+                        self.frame_item[frame_item_ind + i][2].update()
+                        self.frame_item[frame_item_ind + i][3].update()
+                        self.frame_item[frame_item_ind + i][4].update()
+
+                        coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(5 / 100 * frame_height)]
+                        self.frame_item[frame_item_ind + i][2].place(x=coord[0], y=coord[1])
+                        coord[1] = coord[1] + self.frame_item[frame_item_ind + i][2].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][3].place(x=coord[0], y=coord[1])
+                        y_coord_lbl = coord[1] + self.frame_item[frame_item_ind + i][3].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][4].place(x=coord[0], y=y_coord_lbl)
+
+                        coord[0] = coord[0] + round(20 / 100 * self.view_canvas.winfo_width())
+                        y_coord_lbl = coord[1]
+
+                        add_index = 0
+                        if self.frame_item[frame_item_ind + i][0] == 'student':
+                            self.frame_item[frame_item_ind + i][5].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][6].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][7].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][5].update()
+                            self.frame_item[frame_item_ind + i][6].update()
+                            self.frame_item[frame_item_ind + i][7].update()
+                            self.frame_item[frame_item_ind + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][5].winfo_height() + GAP
+                            self.frame_item[frame_item_ind + i][6].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][6].winfo_height() + GAP
+                            self.frame_item[frame_item_ind + i][7].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][7].winfo_height() + GAP
+                            add_index = 7
+                        elif self.frame_item[frame_item_ind + i][0] == 'staff':
+                            self.frame_item[frame_item_ind + i][5].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][5].update()
+                            self.frame_item[frame_item_ind + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][5].winfo_height() + GAP
+                            add_index = 5
+                        elif self.frame_item[frame_item_ind + i][0] == 'officer':
+                            self.frame_item[frame_item_ind + i][5].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][5].update()
+                            self.frame_item[frame_item_ind + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][5].winfo_height() + GAP
+                            add_index = 5
+
+                        self.frame_item[frame_item_ind + i][add_index + 1].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][add_index + 2].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][add_index + 3].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][add_index + 4].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][add_index + 5].configure(font=font_setting)
+
+                        self.frame_item[frame_item_ind + i][add_index + 1].update()
+                        self.frame_item[frame_item_ind + i][add_index + 2].update()
+                        self.frame_item[frame_item_ind + i][add_index + 3].update()
+                        self.frame_item[frame_item_ind + i][add_index + 4].update()
+                        self.frame_item[frame_item_ind + i][add_index + 5].update()
+
+                        self.frame_item[frame_item_ind + i][add_index + 1].place(x=coord[0], y=y_coord_lbl)
+                        coord[0] = coord[0] + round(28 / 100 * self.view_canvas.winfo_width())
+                        y_coord_lbl = coord[1]
+                        self.frame_item[frame_item_ind + i][add_index + 2].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][
+                            add_index + 2].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][add_index + 3].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][
+                            add_index + 3].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][add_index + 4].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[frame_item_ind + i][
+                            add_index + 4].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][add_index + 5].place(x=coord[0], y=y_coord_lbl)
+
+                        no_img_driver = Image.new('RGB', (frame_height - self.borderwidth * 2,
+                                                          frame_height - self.borderwidth * 2), color='#171010')
+                        no_img_driver_text = "No Driver\nImage Available"
+                        no_img_driver_font = ImageFont.truetype("calibri.ttf", round(root.font_size * 1.1))
+                        draw = ImageDraw.Draw(no_img_driver)
+                        w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
+                        draw.text((round((no_img_driver.width / 2 - w / 2)),
+                                   round(no_img_driver.height / 2 - h / 2)),
+                                  no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
+
+                        if self.frame_item[frame_item_ind + i][0] == 'student':
+                            if self.frame_item[frame_item_ind + i][15]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[frame_item_ind + i][16]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[frame_item_ind + i][13] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[frame_item_ind + i][13] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[frame_item_ind + i][14].configure(
+                                image=self.frame_item[frame_item_ind + i][13],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[frame_item_ind + i][14].place(x=0, y=0)
+                            self.frame_item[frame_item_ind + i][14].update()
+                        elif self.frame_item[frame_item_ind + i][0] == 'staff':
+                            if self.frame_item[frame_item_ind + i][13]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[frame_item_ind + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            # self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[frame_item_ind + i][12].configure(
+                                image=self.frame_item[frame_item_ind + i][11],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[frame_item_ind + i][12].place(x=0, y=0)
+                            self.frame_item[frame_item_ind + i][12].update()
+                        elif self.frame_item[frame_item_ind + i][0] == 'officer':
+                            if self.frame_item[frame_item_ind + i][13]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[frame_item_ind + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            # self.frame_item[frame_item_ind + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[frame_item_ind + i][12].configure(
+                                image=self.frame_item[frame_item_ind + i][11],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[frame_item_ind + i][12].place(x=0, y=0)
+                            self.frame_item[frame_item_ind + i][12].update()
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                        self.frame_item[frame_item_ind + i][add_index + 10].configure(font=font_setting,
+                                                                                      width=round(
+                                                                                          0.01 * frame.winfo_width()))
+                        self.frame_item[frame_item_ind + i][add_index + 11].configure(font=font_setting,
+                                                                                      width=round(
+                                                                                          0.01 * frame.winfo_width()))
+                        # command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                        #                                              self.search_driver(a, b)
+                        self.frame_item[frame_item_ind + i][add_index + 10].update()
+                        self.frame_item[frame_item_ind + i][add_index + 11].update()
+                        self.frame_item[frame_item_ind + i][add_index + 10].place(
+                            x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                add_index + 10].winfo_width() - self.borderwidth * 2,
+                            y=self.borderwidth)
+                        self.frame_item[frame_item_ind + i][add_index + 11].place(
+                            x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                add_index + 11].winfo_width() - self.borderwidth * 2,
+                            y=round(self.frame_item[frame_item_ind + i][
+                                        add_index + 11].winfo_height() * 1.1) + self.borderwidth)
 
                 remainder = (frame_height - (self.borderwidth * 2)) * self.prof_per_frame - \
                             self.view_canvas.winfo_height()
@@ -1026,6 +1408,7 @@ class SentsGui(Tk):
                                             self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
                                           y=(root.winfo_height() - margin_height) +
                                             (margin_height / 2 - self.next_label.winfo_height() / 2))
+
             else:
                 self.place(x=width, y=height)
                 self.num_pg_label.place_forget()
@@ -1062,7 +1445,8 @@ class SentsGui(Tk):
             # self.search_sort_cbox.place(x=coord_x, y=0)
             # self.search_sort_cbox.update()
 
-            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width) # self.search_sort_cbox.winfo_width() +
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(
+                margin_width)  # self.search_sort_cbox.winfo_width() +
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
             self.search_btn.configure(font=font_setting,
                                       command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
@@ -1096,7 +1480,7 @@ class SentsGui(Tk):
             main_layout = root.main_layout
             theme = root.theme
             self.driver_list = []
-            print("Search Admin")
+            print("Search Driver")
             # Test
             """
             if self.search_str.get() == "test":
@@ -1126,12 +1510,8 @@ class SentsGui(Tk):
             search_filter = ""
             if self.search_filter_str.get() == self.search_filter_cbox['value'][0]:
                 search_filter = 'all'
-            elif self.search_filter_str.get() == self.search_filter_cbox['value'][1]:
-                search_filter = self.search_filter_str.get()
-            elif self.search_filter_str.get() == self.search_filter_cbox['value'][2]:
-                search_filter = self.search_filter_str.get()
-            elif self.search_filter_str.get() == self.search_filter_cbox['value'][3]:
-                search_filter = self.search_filter_str.get()
+            else:
+                search_filter = self.search_filter_str.get().lower()
 
             # Database Connection
             search_input = self.search_str.get()
@@ -1168,32 +1548,255 @@ class SentsGui(Tk):
                 temp_sub_frame = []
                 self.canvas_item = []
                 self.sub_frame = []
+                self.frame_item = []
+                GAP = round(0.25 / 100 * root.winfo_width())
                 self.view_canvas.delete('all')
+
+                path_driver = os.path.join(TEMP_FOLDER, DRIVER_FOLDER)
+                for file in os.listdir(path_driver):
+                    os.remove(os.path.join(path_driver, file))
+
                 for i, driver in enumerate(self.driver_list):
-                    print("\t", driver)
+                    # print("\t", driver)
                     each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(), height=frame_height,
                                            bg=CP[theme][5], highlightthickness=self.borderwidth)
                     # Start Label Fragment HERE
-                    role = Label(each_sub_frame, text=driver[0])
+                    # data = (role, id, name, year, hostel, vaccineStat, rankOfficer, plateNum, vehType, vehBrand, vehModel, roadTax)
+
+                    font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                    name = Label(each_sub_frame, text="Name\t: " + driver[2].upper(), font=font_setting,
+                                 bg=CP[root.theme][5],
+                                 fg=CP[root.theme][1])
+
+                    font_setting = "Calibri " + str(round(root.font_size * 0.65))
+                    role = Label(each_sub_frame, text="Role\t: " + driver[0].upper(), font=font_setting,
+                                 bg=CP[root.theme][5],
+                                 fg=CP[root.theme][1])
+                    driver_id = Label(each_sub_frame, text="ID\t: " + driver[1].upper(), font=font_setting,
+                                      bg=CP[root.theme][5], fg=CP[root.theme][1])
+                    year = None
+                    hostel = None
+                    vac_stat = None
+                    rank = None
+
+                    role.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    driver_id.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    name.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    role.update()
+                    driver_id.update()
+                    name.update()
+
+                    coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(5 / 100 * frame_height)]
+                    name.place(x=coord[0], y=coord[1])
+                    coord[1] = coord[1] + name.winfo_height() + GAP
+                    role.place(x=coord[0], y=coord[1])
+                    y_coord_lbl = coord[1] + role.winfo_height() + GAP
+                    driver_id.place(x=coord[0], y=y_coord_lbl)
+
+                    coord[0] = coord[0] + round(20 / 100 * self.view_canvas.winfo_width())
+                    y_coord_lbl = coord[1]
 
                     if driver[0] == 'student':
-                        pass
+                        driver_id.configure(text="Matric ID\t: " + driver[1].upper())
+                        year = Label(each_sub_frame, text="Year\t\t: " + str(driver[3]), font=font_setting,
+                                     bg=CP[root.theme][5],
+                                     fg=CP[root.theme][1])
+                        hostel = Label(each_sub_frame, text="Hostel\t\t: " + driver[4], font=font_setting,
+                                       bg=CP[root.theme][5],
+                                       fg=CP[root.theme][1])
+                        vac_stat = Label(each_sub_frame, text="Vaccine Status\t: " + driver[5], font=font_setting,
+                                         bg=CP[root.theme][5],
+                                         fg=CP[root.theme][1])
+                        year.place(x=0, y=0)
+                        hostel.place(x=0, y=0)
+                        vac_stat.place(x=0, y=0)
+                        year.update()
+                        hostel.update()
+                        vac_stat.update()
+                        year.place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + year.winfo_height() + GAP
+                        hostel.place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + hostel.winfo_height() + GAP
+                        vac_stat.place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + vac_stat.winfo_height() + GAP
                     elif driver[0] == 'staff':
-                        pass
+                        driver_id.configure(text="Staff ID\t: " + driver[1].upper())
+                        vac_stat = Label(each_sub_frame, text="Vaccine Status\t: " + driver[5], font=font_setting,
+                                         bg=CP[root.theme][5],
+                                         fg=CP[root.theme][1])
+                        vac_stat.place(x=coord[0], y=0)
+                        vac_stat.update()
+                        vac_stat.place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + vac_stat.winfo_height() + GAP
                     elif driver[0] == 'officer':
-                        pass
+                        driver_id.configure(text="Officer ID\t: " + driver[1].upper())
+                        rank = Label(each_sub_frame, text="Rank\t\t: " + driver[6], font=font_setting,
+                                     bg=CP[root.theme][5],
+                                     fg=CP[root.theme][1])
+                        rank.place(x=coord[0], y=0)
+                        rank.update()
+                        rank.place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + rank.winfo_height() + GAP
 
-                    role.place(x=0, y=0)
+                    plate_num = Label(each_sub_frame, text="Plate Number\t: " + driver[7].upper(), font=font_setting,
+                                      bg=CP[root.theme][5],
+                                      fg=CP[root.theme][1])
+                    veh_type = Label(each_sub_frame, text="Vehicle Type\t: " + driver[8], font=font_setting,
+                                     bg=CP[root.theme][5],
+                                     fg=CP[root.theme][1])
+                    veh_brand = Label(each_sub_frame, text="Vehicle Brand\t: " + driver[9].upper(), font=font_setting,
+                                      bg=CP[root.theme][5],
+                                      fg=CP[root.theme][1])
+                    veh_model = Label(each_sub_frame, text="Vehicle Brand\t: " + driver[10].upper(), font=font_setting,
+                                      bg=CP[root.theme][5],
+                                      fg=CP[root.theme][1])
+                    road_tax = Label(each_sub_frame,
+                                     text="Road Tax\t\t: " + datetime.datetime.strftime(driver[11], '%d/%m/%Y'),
+                                     font=font_setting, bg=CP[root.theme][5], fg=CP[root.theme][1])
 
+                    plate_num.place(x=0, y=0)
+                    veh_type.place(x=0, y=0)
+                    veh_brand.place(x=0, y=0)
+                    veh_model.place(x=0, y=0)
+                    road_tax.place(x=0, y=0)
+                    plate_num.update()
+                    veh_type.update()
+                    veh_brand.update()
+                    veh_model.update()
+                    road_tax.update()
+
+                    plate_num.place(x=coord[0], y=y_coord_lbl)
+                    coord[0] = coord[0] + round(28 / 100 * self.view_canvas.winfo_width())
+                    y_coord_lbl = coord[1]
+                    veh_type.place(x=coord[0], y=y_coord_lbl)
+                    y_coord_lbl = y_coord_lbl + veh_type.winfo_height() + GAP
+                    veh_brand.place(x=coord[0], y=y_coord_lbl)
+                    y_coord_lbl = y_coord_lbl + veh_brand.winfo_height() + GAP
+                    veh_model.place(x=coord[0], y=y_coord_lbl)
+                    y_coord_lbl = y_coord_lbl + veh_model.winfo_height() + GAP
+                    road_tax.place(x=coord[0], y=y_coord_lbl)
+
+                    no_img_driver = Image.new('RGB', (frame_height - self.borderwidth * 2,
+                                                      frame_height - self.borderwidth * 2), color='#171010')
+                    no_img_driver_text = "No Driver\nImage Available"
+                    no_img_driver_font = ImageFont.truetype("calibri.ttf", round(root.font_size * 1.1))
+                    draw = ImageDraw.Draw(no_img_driver)
+                    w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
+                    draw.text((round((no_img_driver.width / 2 - w / 2)),
+                               round(no_img_driver.height / 2 - h / 2)),
+                              no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
+                    driver_img_tk = ImageTk.PhotoImage(no_img_driver)
+                    driver_img_label = Label(each_sub_frame, bg=CP[theme][2], bd=0,
+                                             width=frame_height - self.borderwidth * 2,
+                                             height=frame_height - self.borderwidth * 2)
+
+                    dw_result = False
+                    driver_img = ''
                     if i < self.prof_per_frame:
                         canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
                         self.canvas_item.append(canvas_item)
+                        dw_result, driver_img = fl.dw_from_server(path_driver, driver[1].upper(), 1)
+                        if dw_result:
+                            img_driver = Image.open(os.path.join(path_driver, driver_img))
+                            img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                    frame_height - self.borderwidth * 2),
+                                                                   Image.ANTIALIAS)
+                            if driver[0] == 'student':
+                                driver_img_tk = ImageTk.PhotoImage(img_resized_driver)
+                                driver_img_label.configure(image=driver_img_tk)
+                                driver_img_label.place(x=0, y=0)
+                                driver_img_label.update()
+                            elif driver[0] == 'staff':
+                                driver_img_tk = ImageTk.PhotoImage(img_resized_driver)
+                                driver_img_label.configure(image=driver_img_tk)
+                                driver_img_label.place(x=0, y=0)
+                                driver_img_label.update()
+                            elif driver[0] == 'officer':
+                                driver_img_tk = ImageTk.PhotoImage(img_resized_driver)
+                                driver_img_label.configure(image=driver_img_tk)
+                                driver_img_label.place(x=0, y=0)
+                                driver_img_label.update()
                     y_coord = y_coord + frame_height
+
+                    font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                    edit_btn = Button(each_sub_frame, bg=CP[theme][10], fg=CP[theme][11],
+                                      activebackground=CP[theme][13], activeforeground=CP[theme][14],
+                                      text="Edit", font=font_setting,
+                                      width=round(0.01 * each_sub_frame.winfo_width()), pady=1)
+                    remove_btn = Button(each_sub_frame, bg=CP[theme][10], fg=CP[theme][11],
+                                        activebackground=CP[theme][13], activeforeground=CP[theme][14],
+                                        text="Remove", font=font_setting,
+                                        width=round(0.01 * each_sub_frame.winfo_width()), pady=1)
+                    # command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                    #                                              self.search_driver(a, b)
+                    edit_btn.place(x=0, y=0)
+                    remove_btn.place(x=0, y=0)
+                    edit_btn.update()
+                    remove_btn.update()
+                    edit_btn.place(x=each_sub_frame.winfo_width() - edit_btn.winfo_width() - self.borderwidth * 2,
+                                   y=self.borderwidth)
+                    remove_btn.place(x=each_sub_frame.winfo_width() - remove_btn.winfo_width() - self.borderwidth * 2,
+                                     y=round(edit_btn.winfo_height() * 1.1) + self.borderwidth)
+
+                    if driver[0] == 'student':
+                        self.frame_item.append(
+                            [driver[0], driver[1].upper(), name, role, driver_id, year, hostel, vac_stat, plate_num,
+                             veh_type, veh_brand, veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn])
+                        self.frame_item[len(self.frame_item) - 1][14].configure(
+                            image=self.frame_item[len(self.frame_item) - 1][13])
+                        self.frame_item[len(self.frame_item) - 1][14].place(x=0, y=0)
+                        self.frame_item[len(self.frame_item) - 1][14].update()
+
+                        self.frame_item[len(self.frame_item) - 1][17].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.edit_driver_menu(a, b)
+                        )
+                        self.frame_item[len(self.frame_item) - 1][18].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.rem_driver(a, b)
+                        )
+                    elif driver[0] == 'staff':
+                        self.frame_item.append(
+                            [driver[0], driver[1].upper(), name, role, driver_id, vac_stat, plate_num, veh_type,
+                             veh_brand, veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn])
+                        self.frame_item[len(self.frame_item) - 1][12].configure(
+                            image=self.frame_item[len(self.frame_item) - 1][11])
+                        self.frame_item[len(self.frame_item) - 1][12].place(x=0, y=0)
+                        self.frame_item[len(self.frame_item) - 1][12].update()
+
+                        self.frame_item[len(self.frame_item) - 1][15].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.edit_driver_menu(a, b)
+                        )
+                        self.frame_item[len(self.frame_item) - 1][16].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.rem_driver(a, b)
+                        )
+                    elif driver[0] == 'officer':
+                        self.frame_item.append(
+                            [driver[0], driver[1].upper(), name, role, driver_id, rank, plate_num, veh_type, veh_brand,
+                             veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn])
+                        self.frame_item[len(self.frame_item) - 1][12].configure(
+                            image=self.frame_item[len(self.frame_item) - 1][11])
+                        self.frame_item[len(self.frame_item) - 1][12].place(x=0, y=0)
+                        self.frame_item[len(self.frame_item) - 1][12].update()
+
+                        self.frame_item[len(self.frame_item) - 1][15].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.edit_driver_menu(a, b)
+                        )
+                        self.frame_item[len(self.frame_item) - 1][16].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.rem_driver(a, b)
+                        )
 
                     if i % self.prof_per_frame < self.prof_per_frame - 1:
                         temp_sub_frame.append(each_sub_frame)
                         if i == len(self.driver_list) - 1:
-                            remainder = 3 - (i % self.prof_per_frame)
+                            remainder = self.prof_per_frame - (i % self.prof_per_frame)
 
                             for j in range(0, remainder):
                                 each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(),
@@ -1332,14 +1935,728 @@ class SentsGui(Tk):
                 else:
                     self.next_label.place_forget()
 
+            if 1 <= type <= 2:
+                GAP = round(0.25 / 100 * root.winfo_width())
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_item_ind = (self.page_index - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if self.page_index == division:
+                    last_page = True
+                else:
+                    last_page = False
+
+                path_driver = os.path.join(TEMP_FOLDER, DRIVER_FOLDER)
+                for file in os.listdir(path_driver):
+                    os.remove(os.path.join(path_driver, file))
+
+                path_driver = os.path.join(TEMP_FOLDER, DRIVER_FOLDER)
+                index = (self.page_index - 1) * self.prof_per_frame
+                for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        # print(index + i, i, last_page)
+                        font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                        self.frame_item[index + i][2].configure(font=font_setting)
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.65))
+                        self.frame_item[index + i][3].configure(font=font_setting)
+                        self.frame_item[index + i][4].configure(font=font_setting)
+
+                        self.frame_item[index + i][2].update()
+                        self.frame_item[index + i][3].update()
+                        self.frame_item[index + i][4].update()
+
+                        coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(5 / 100 * frame_height)]
+                        self.frame_item[index + i][2].place(x=coord[0], y=coord[1])
+                        coord[1] = coord[1] + self.frame_item[index + i][2].winfo_height() + GAP
+                        self.frame_item[index + i][3].place(x=coord[0], y=coord[1])
+                        y_coord_lbl = coord[1] + self.frame_item[index + i][3].winfo_height() + GAP
+                        self.frame_item[index + i][4].place(x=coord[0], y=y_coord_lbl)
+
+                        coord[0] = coord[0] + round(20 / 100 * self.view_canvas.winfo_width())
+                        y_coord_lbl = coord[1]
+
+                        add_index = 0
+                        if self.frame_item[index + i][0] == 'student':
+                            self.frame_item[index + i][5].configure(font=font_setting)
+                            self.frame_item[index + i][6].configure(font=font_setting)
+                            self.frame_item[index + i][7].configure(font=font_setting)
+                            self.frame_item[index + i][5].update()
+                            self.frame_item[index + i][6].update()
+                            self.frame_item[index + i][7].update()
+                            self.frame_item[index + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[index + i][5].winfo_height() + GAP
+                            self.frame_item[index + i][6].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[index + i][6].winfo_height() + GAP
+                            self.frame_item[index + i][7].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[index + i][7].winfo_height() + GAP
+                            add_index = 7
+                        elif self.frame_item[index + i][0] == 'staff':
+                            self.frame_item[index + i][5].configure(font=font_setting)
+                            self.frame_item[index + i][5].update()
+                            self.frame_item[index + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[index + i][5].winfo_height() + GAP
+                            add_index = 5
+                        elif self.frame_item[index + i][0] == 'officer':
+                            self.frame_item[index + i][5].configure(font=font_setting)
+                            self.frame_item[index + i][5].update()
+                            self.frame_item[index + i][5].place(x=coord[0], y=y_coord_lbl)
+                            y_coord_lbl = y_coord_lbl + self.frame_item[index + i][5].winfo_height() + GAP
+                            add_index = 5
+
+                        self.frame_item[index + i][add_index + 1].configure(font=font_setting)
+                        self.frame_item[index + i][add_index + 2].configure(font=font_setting)
+                        self.frame_item[index + i][add_index + 3].configure(font=font_setting)
+                        self.frame_item[index + i][add_index + 4].configure(font=font_setting)
+                        self.frame_item[index + i][add_index + 5].configure(font=font_setting)
+
+                        self.frame_item[index + i][add_index + 1].update()
+                        self.frame_item[index + i][add_index + 2].update()
+                        self.frame_item[index + i][add_index + 3].update()
+                        self.frame_item[index + i][add_index + 4].update()
+                        self.frame_item[index + i][add_index + 5].update()
+
+                        self.frame_item[index + i][add_index + 1].place(x=coord[0], y=y_coord_lbl)
+                        coord[0] = coord[0] + round(28 / 100 * self.view_canvas.winfo_width())
+                        y_coord_lbl = coord[1]
+                        self.frame_item[index + i][add_index + 2].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[index + i][
+                            add_index + 2].winfo_height() + GAP
+                        self.frame_item[index + i][add_index + 3].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[index + i][
+                            add_index + 3].winfo_height() + GAP
+                        self.frame_item[index + i][add_index + 4].place(x=coord[0], y=y_coord_lbl)
+                        y_coord_lbl = y_coord_lbl + self.frame_item[index + i][
+                            add_index + 4].winfo_height() + GAP
+                        self.frame_item[index + i][add_index + 5].place(x=coord[0], y=y_coord_lbl)
+
+                        dw_result, driver_img = fl.dw_from_server(path_driver, self.frame_item[index + i][1], 1)
+                        if dw_result:
+                            # img_driver = Image.open(os.path.join(path_driver, driver_img))
+                            # img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                            #                                         frame_height - self.borderwidth * 2),
+                            #                                        Image.ANTIALIAS)
+                            print("Index: ", index + i)
+                            print(self.frame_item[index + i])
+                            if self.frame_item[index + i][0] == 'student':
+                                self.frame_item[index + i][15] = dw_result
+                                self.frame_item[index + i][16] = driver_img
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][16]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][13] = ImageTk.PhotoImage(img_resized_driver)
+                                self.frame_item[index + i][14].configure(
+                                    image=self.frame_item[index + i][13],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][14].place(x=0, y=0)
+                                self.frame_item[index + i][14].update()
+                            elif self.frame_item[index + i][0] == 'staff':
+                                self.frame_item[index + i][13] = dw_result
+                                self.frame_item[index + i][14] = driver_img
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                                # self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                                self.frame_item[index + i][12].configure(
+                                    image=self.frame_item[index + i][11],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][12].place(x=0, y=0)
+                                self.frame_item[index + i][12].update()
+                            elif self.frame_item[index + i][0] == 'officer':
+                                self.frame_item[index + i][13] = dw_result
+                                self.frame_item[index + i][14] = driver_img
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                                # self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                                self.frame_item[index + i][12].configure(
+                                    image=self.frame_item[index + i][11],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][12].place(x=0, y=0)
+                                self.frame_item[index + i][12].update()
+                        else:
+                            no_img_driver = Image.new('RGB', (frame_height - self.borderwidth * 2,
+                                                              frame_height - self.borderwidth * 2), color='#171010')
+                            no_img_driver_text = "No Driver\nImage Available"
+                            no_img_driver_font = ImageFont.truetype("calibri.ttf", round(root.font_size * 1.1))
+                            draw = ImageDraw.Draw(no_img_driver)
+                            w, h = draw.textsize(no_img_driver_text, font=no_img_driver_font)
+                            draw.text((round((no_img_driver.width / 2 - w / 2)),
+                                       round(no_img_driver.height / 2 - h / 2)),
+                                      no_img_driver_text, "#EEEEEE", font=no_img_driver_font, align=CENTER)
+
+                            if self.frame_item[index + i][0] == 'student':
+                                self.frame_item[index + i][13] = ImageTk.PhotoImage(no_img_driver)
+                                self.frame_item[index + i][14].configure(
+                                    image=self.frame_item[index + i][13],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][14].place(x=0, y=0)
+                                self.frame_item[index + i][14].update()
+                            elif self.frame_item[index + i][0] == 'staff':
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                                self.frame_item[index + i][12].configure(
+                                    image=self.frame_item[index + i][11],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][12].place(x=0, y=0)
+                                self.frame_item[index + i][12].update()
+                            elif self.frame_item[index + i][0] == 'officer':
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                                self.frame_item[index + i][12].configure(
+                                    image=self.frame_item[index + i][11],
+                                    width=frame_height - self.borderwidth * 2,
+                                    height=frame_height - self.borderwidth * 2)
+                                self.frame_item[index + i][12].place(x=0, y=0)
+                                self.frame_item[index + i][12].update()
+
+                        if self.frame_item[index + i][0] == 'student':
+                            if self.frame_item[index + i][15]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][16]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][13] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[index + i][13] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[index + i][14].configure(
+                                image=self.frame_item[index + i][13],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[index + i][14].place(x=0, y=0)
+                            self.frame_item[index + i][14].update()
+                        elif self.frame_item[index + i][0] == 'staff':
+                            if self.frame_item[index + i][13]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            # self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[index + i][12].configure(
+                                image=self.frame_item[index + i][11],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[index + i][12].place(x=0, y=0)
+                            self.frame_item[index + i][12].update()
+                        elif self.frame_item[index + i][0] == 'officer':
+                            if self.frame_item[index + i][13]:
+                                img_driver = Image.open(
+                                    os.path.join(path_driver, self.frame_item[index + i][14]))
+                                img_resized_driver = img_driver.resize((frame_height - self.borderwidth * 2,
+                                                                        frame_height - self.borderwidth * 2),
+                                                                       Image.ANTIALIAS)
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(img_resized_driver)
+                            else:
+                                self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            # self.frame_item[index + i][11] = ImageTk.PhotoImage(no_img_driver)
+                            self.frame_item[index + i][12].configure(
+                                image=self.frame_item[index + i][11],
+                                width=frame_height - self.borderwidth * 2, height=frame_height - self.borderwidth * 2)
+                            self.frame_item[index + i][12].place(x=0, y=0)
+                            self.frame_item[index + i][12].update()
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                        self.frame_item[frame_item_ind + i][add_index + 10].configure(font=font_setting,
+                                                                                      width=round(
+                                                                                          0.01 * frame.winfo_width()))
+                        self.frame_item[frame_item_ind + i][add_index + 11].configure(font=font_setting,
+                                                                                      width=round(
+                                                                                          0.01 * frame.winfo_width()))
+                        # command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                        #                                              self.search_driver(a, b)
+                        self.frame_item[frame_item_ind + i][add_index + 10].update()
+                        self.frame_item[frame_item_ind + i][add_index + 11].update()
+                        self.frame_item[frame_item_ind + i][add_index + 10].place(
+                            x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                add_index + 10].winfo_width() - self.borderwidth * 2,
+                            y=self.borderwidth)
+                        self.frame_item[frame_item_ind + i][add_index + 11].place(
+                            x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                add_index + 11].winfo_width() - self.borderwidth * 2,
+                            y=round(self.frame_item[frame_item_ind + i][
+                                        add_index + 11].winfo_height() * 1.1) + self.borderwidth)
+
+        def rem_driver(self, root, data):
+            confirm = Toplevel(root)
+            width = 320
+            height = 180
+            x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
+            y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
+            gap = 50
+            entry_length = 20
+
+            confirm.title('Confirmation')
+            confirm.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+            # self.attributes('-topmost', True)
+            confirm.grab_set()
+            # self.grab_release()  # After Finish Setting
+            confirm.resizable(False, False)
+
+            confirm_main_canvas = Canvas(confirm, highlightthickness=0, bg=CP[root.theme][5],
+                                         width=width, height=height)
+            confirm_main_canvas.place(x=0, y=0)
+            confirm_main_canvas.update()
+
+            confirm_frame = Frame(confirm_main_canvas, bg=CP[root.theme][5])
+            font_setting = "Calibri " + str(15)  # round(root.font_size * 0.85)
+            confirm_label = Label(confirm_main_canvas, font=font_setting, text='Confirm to Remove?',
+                                  bg=CP[root.theme][5], fg=CP[root.theme][1])
+            confirm_label.place(x=0, y=0)
+            confirm_label.update()
+            confirm_label.place(x=width / 2 - confirm_label.winfo_width() / 2,
+                                y=height / 4)
+
+            font_setting = "Calibri " + str(10)  # round(root.font_size * 0.65)
+            confirm_ok_btn = Button(confirm_main_canvas, font=font_setting, text="Confirm", width=8,
+                                    bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                    activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                    command=lambda a=root, b=confirm, c=2, d=data: btn_event(a, b, c, d))
+            confirm_ok_btn.place(x=width, y=height)
+            confirm_ok_btn.update()
+            confirm_ok_btn.place(x=width / 2 - confirm_ok_btn.winfo_width() - 10,
+                                 y=3 * height / 4 - confirm_ok_btn.winfo_height())
+            confirm_ok_btn.update()
+
+            confirm_cancel_btn = Button(confirm_main_canvas, font=font_setting, text="Cancel", width=8,
+                                        bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                        activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                        command=lambda a=root, b=confirm, c=1, d=data: btn_event(a, b, c, d))
+            confirm_cancel_btn.place(x=width, y=height)
+            confirm_cancel_btn.update()
+            confirm_cancel_btn.place(x=width / 2 + 10,
+                                     y=3 * height / 4 - confirm_cancel_btn.winfo_height())
+            confirm_cancel_btn.update()
+
+            def btn_event(root, confirm, type, data):
+                # type = 2 is originally for port, got taken out
+                if type == 1:
+                    confirm.destroy()
+                elif type == 2:
+                    label_data = []
+                    if data[0] == 'student':
+                        label_data = ['student', 'studentID', data[4].cget("text").split(': ')[1],
+                                      data[8].cget("text").split(': ')[1]]
+                    elif data[0] == 'staff':
+                        label_data = ['staff', 'staffID', data[4].cget("text").split(': ')[1],
+                                      data[6].cget("text").split(': ')[1]]
+                    elif data[0] == 'officer':
+                        label_data = ['officer', 'officerID', data[4].cget("text").split(': ')[1],
+                                      data[6].cget("text").split(': ')[1]]
+
+                    stats, msg = fl.rem_from_server(label_data[2])
+                    stats, msg = db.remove_driver(label_data)
+                    confirm.destroy()
+
+                    title = ''
+                    desc = msg
+                    if stats:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
+                    SentsGui.Notification(root, title, desc)
+
+                    # Update Search List
+                    self.search_driver([root.margin_width, root.margin_height, self.mar_search], root)
+
+        def edit_driver_menu(self, root, data):
+            edit = Toplevel(root)
+            width = round(45 / 100 * self.winfo_screenwidth())  # round(67 / 100 * self.winfo_screenwidth())
+            height = round(50 / 100 * self.winfo_screenheight())  # round(67 / 100 * self.winfo_screenheight())
+            x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
+            y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
+
+            gap = 40
+            entry_length = 60
+
+            edit.title('Edit ' + data[0])
+            edit.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+            edit.grab_set()
+            edit.resizable(False, False)
+
+            edit_main_canvas = Canvas(edit, highlightthickness=0, bg=CP[root.theme][5],
+                                      width=width, height=height)
+            edit_main_canvas.place(x=0, y=0)
+            edit_main_canvas.update()
+
+            # self.FONTSIZE_RATIO = 30.87
+            font_size = round(self.winfo_screenwidth() / 100)
+            margin = [round(0.15 * edit.winfo_width()), round(0.08 * edit.winfo_height())]
+
+            # LAYOUT
+            y_coord = 0
+            edit_frame = Frame(edit_main_canvas, bg=CP[root.theme][5],
+                               width=width - 2 * margin[0], height=height - 2 * margin[1])
+            edit_frame.place(x=width, y=height)
+            edit_frame.update()
+
+            font_setting = "Calibri " + str(round(font_size * 1))  # round(root.font_size * 0.85) or 15
+            edit_label = Label(edit_frame, font=font_setting, text='Edit Driver',
+                               bg=CP[root.theme][5], fg=CP[root.theme][1])
+            edit_label.place(x=0, y=0)
+            edit_label.update()
+            y_coord = edit_frame.winfo_height() / 32
+            edit_label.place(x=edit_frame.winfo_width() / 2 - edit_label.winfo_width() / 2,
+                             y=y_coord)
+
+            edit_type_str = StringVar()
+            # pe = str(round(width / 412))
+            font_setting = "Calibri " + str(round(font_size * 0.75))
+            # ttk.Style().configure('pad.TCombobox', padding=(pe + ' 1 ' + pe + ' 1'))
+            self.edit_type_cbox = ttk.Combobox(edit_frame, width=round(entry_length - 2), font=font_setting,
+                                               textvariable=edit_type_str, style='pad.TCombobox')
+
+            if data[0] == 'student':
+                self.edit_type_cbox['values'] = [
+                    'Select...', 'Name', 'Year', 'Hostel', 'Vaccination Status', 'Plate Number', 'Vehicle Type',
+                    'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                ]
+            elif data[0] == 'staff':
+                self.edit_type_cbox['values'] = [
+                    'Select...', 'Name', 'Vaccination Status', 'Plate Number', 'Vehicle Type',
+                    'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                ]
+            elif data[0] == 'officer':
+                self.edit_type_cbox['values'] = [
+                    'Select...', 'Name', 'Rank', 'Plate Number', 'Vehicle Type',
+                    'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                ]
+            self.edit_type_cbox['state'] = 'readonly'  # disabled or readonly
+            self.edit_type_cbox.current(0)
+            y_coord = y_coord + gap * 2
+            self.edit_type_cbox.place(x=0, y=y_coord)
+            # edit_type_cbox.bind("<<ComboboxSelected>>", lambda event, a=data: edit_type_event(event, a))
+            self.edit_type_cbox.after(500, lambda: set_current())
+
+            font_setting = "Calibri " + str(round(font_size * 0.85))
+            current_val_label = Label(edit_frame, font=font_setting, text='',
+                                      bg=CP[root.theme][5], fg=CP[root.theme][1])
+            # current_val_label.place(x=0, y=0)
+            # current_val_label.update()
+            # y_coord = y_coord + gap + edit_type_cbox.winfo_height()
+            # current_val_label.place(x=round(margin[0] / 8), y=y_coord)
+
+            edit_value_label = Label(edit_frame, font=font_setting, text='Value:',
+                                     bg=CP[root.theme][5], fg=CP[root.theme][1])
+            # edit_value_label.place(x=0, y=0)
+            # edit_value_label.update()
+            # y_coord = y_coord + round(gap / 2) + current_val_label.winfo_height()
+            # edit_value_label.place(x=0, y=y_coord)
+
+            self.edit_value_str = StringVar()
+            font_setting = "Calibri " + str(round(font_size * 0.75))
+            # ttk.Style().configure('pad.TEntry', padding=(pe + ' 1 ' + pe + ' 1'))
+            edit_value_entry = ttk.Entry(edit_frame, width=round(entry_length), textvariable=self.edit_value_str,
+                                         font=font_setting, style='pad.TEntry')
+            # edit_value_entry.place(x=0, y=0)
+            # edit_value_entry.update()
+            # y_coord = y_coord + edit_value_label.winfo_height()
+            # edit_value_entry.place(x=0, y=y_coord)
+
+            self.edit_value_cbox = ttk.Combobox(edit_frame, width=round(entry_length - 2), font=font_setting,
+                                                textvariable=self.edit_value_str, style='pad.TCombobox')
+            self.edit_value_cbox['state'] = 'readonly'
+            # edit_value_cbox['values'] = ['Select...']
+            # edit_value_cbox.current(0)
+            # y_coord = y_coord + edit_value_label.winfo_height()
+            # edit_value_cbox.place(x=0, y=y_coord)
+
+            # pc = str(round(self.winfo_width() / 118))
+            # ttk.Style().configure('pad.DateEntry', padding=(pc + ' 0 ' + pc + ' 0'))
+            edit_value_date = tkcalendar.DateEntry(edit_frame, width=10, selectmode='day', style='pad.DateEntry',
+                                                   textvariable=self.edit_value_str, date_pattern='dd/mm/yyyy',
+                                                   state='readonly', font=font_setting)
+
+            # BUTTONS
+            button_coord = [edit.winfo_width() - margin[0], edit.winfo_height() - margin[1]]
+            font_setting = "Calibri " + str(round(font_size * 0.65))  # round(root.font_size * 0.65) or 10
+            edit_apply_btn = Button(edit_main_canvas, font=font_setting, text="Apply", width=8,
+                                    bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                    activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                    command=lambda a=root, b=edit, c=1, d=data: btn_event(a, b, c, d)
+                                    )  # command=lambda a=root, b=edit, c=1, d=data: btn_event(a, b, c, d)
+            edit_apply_btn.place(x=width, y=height)
+            edit_apply_btn.update()
+            button_coord[0] = button_coord[0] - edit_apply_btn.winfo_width()
+            edit_apply_btn.place(x=button_coord[0],
+                                 y=button_coord[1] - edit_apply_btn.winfo_height())
+            edit_apply_btn.update()
+
+            edit_cancel_btn = Button(edit_main_canvas, font=font_setting, text="Cancel", width=8,
+                                     bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                     activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                     command=lambda a=root, b=edit, c=2, d=data: btn_event(a, b, c, d)
+                                     )  # command=lambda a=root, b=edit, c=2, d=data: btn_event(a, b, c, d)
+            edit_cancel_btn.place(x=width, y=height)
+            edit_cancel_btn.update()
+            button_coord[0] = button_coord[0] - edit_cancel_btn.winfo_width() - 15
+            edit_cancel_btn.place(x=button_coord[0],
+                                  y=button_coord[1] - edit_cancel_btn.winfo_height())
+            edit_cancel_btn.update()
+
+            edit_ok_btn = Button(edit_main_canvas, font=font_setting, text="Ok", width=8,
+                                 bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                 activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                 command=lambda a=root, b=edit, c=3, d=data: btn_event(a, b, c, d)
+                                 )  # command=lambda a=root, b=edit, c=3, d=data: btn_event(a, b, c, d)
+            edit_ok_btn.place(x=width, y=height)
+            edit_ok_btn.update()
+            button_coord[0] = button_coord[0] - edit_ok_btn.winfo_width() - 15
+            edit_ok_btn.place(x=button_coord[0],
+                              y=button_coord[1] - edit_ok_btn.winfo_height())
+            edit_ok_btn.update()
+
+            # Final Refresh (for clean display)
+            self.edit_type_cbox.bind("<<ComboboxSelected>>", lambda event, a=data, b=current_val_label,
+                                                                    c=edit_value_label,
+                                                                    d=edit_value_entry,
+                                                                    e=y_coord: edit_type_event(event, a, b, c, d, e)
+                                     # h=[edit_apply_btn, edit_ok_btn]
+                                     )
+            edit_frame.place(x=margin[0], y=margin[1])
+
+            def btn_event(root, edit, c, data):
+                value = self.edit_value_str.get()
+                if self.edit_type_cbox.get() == 'Name' or self.edit_type_cbox.get() == 'Plate Number' or \
+                        self.edit_type_cbox.get() == 'Vehicle Brand' or self.edit_type_cbox.get() == 'Vehicle Model':
+                    value = self.edit_value_str.get().upper()
+                elif self.edit_type_cbox.get() == 'Road Tax':
+                    print(value)
+                    value = datetime.datetime.strptime(self.edit_value_str.get(), '%d/%m/%Y').strftime('%Y-%m-%d')
+
+                if c == 1:
+                    print('Apply Changes')
+                    if self.edit_value_str.get() != '' and self.edit_value_str.get() != 'Select...' and \
+                            self.edit_type_cbox.get() != self.edit_type_cbox['values'][0]:
+                        stats, msg = db.edit_driver(data[4].cget('text').split(': ')[1], data[0],
+                                                    self.edit_type_cbox.get(), value)
+                        title = ''
+                        if stats:
+                            title = 'Success!'
+                        else:
+                            title = "Failed..."
+
+                        SentsGui.Notification(root, title, msg)
+                elif c == 2:
+                    print('Close')
+                    # print('Type:', edit_type_cbox.get())
+                    edit.destroy()
+                    self.search_driver([root.margin_width, root.margin_height, self.mar_search], root)
+                elif c == 3:
+                    print('Apply and Close')
+                    if self.edit_value_str.get() != '' and self.edit_value_str.get() != 'Select...' and \
+                            self.edit_type_cbox.get() != self.edit_type_cbox['values'][0]:
+                        stats, msg = db.edit_driver(data[4].cget('text').split(': ')[1], data[0],
+                                                    self.edit_type_cbox.get(), value)
+                        title = ''
+                        if stats:
+                            title = 'Success!'
+                        else:
+                            title = "Failed..."
+
+                        SentsGui.Notification(root, title, msg)
+                        self.search_driver([root.margin_width, root.margin_height, self.mar_search], root)
+
+                    edit.destroy()
+
+            def edit_type_event(event, data, current_val_label, edit_value_label, edit_value_entry, y_coord):
+                index = 0
+                self.edit_value_str.set('')
+                cbox_list = {
+                    'Year': ['Select...', '1', '2', '3', '4', '5'],
+                    'Hostel': ['Select...', 'Inside UTeM', 'Outside UTeM'],
+                    'Vaccination Status': ['Select...', 'Unvaccinated', 'Partially vaccinated', 'Fully vaccinated'],
+                    'Rank': ['Select...', 'Sub-Inspektor', 'Sarjan Mejar', 'Sarjan', 'Koperal', 'Lans Koperal',
+                             'Konstabel'],
+                    'Vehicle Type': ['Select...', 'Car', 'Bike']
+                }
+
+                """
+                Pram for Data Structure:
+                    Student:
+                        [driver[0], driver[1].upper(), name, role, driver_id, year, hostel, vac_stat, plate_num,
+                                     veh_type, veh_brand, veh_model, road_tax,
+                                     driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+                    Staff:
+                        [driver[0], driver[1].upper(), name, role, driver_id, vac_stat, plate_num, veh_type,
+                                     veh_brand, veh_model, road_tax,
+                                     driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+                    Officer:
+                        [driver[0], driver[1].upper(), name, role, driver_id, rank, plate_num, veh_type, veh_brand,
+                                     veh_model, road_tax,
+                                     driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+                """
+
+                if data[0] == 'student':
+                    # edit_type_cbox['values'] = [
+                    #     'Select...', 'Name', 'Year', 'Hostel', 'Vaccination Status', 'Plate Number', 'Vehicle Type',
+                    #     'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                    # ]
+                    name_to_index = {
+                        'Name': 2,
+                        'Year': 5,
+                        'Hostel': 6,
+                        'Vaccination Status': 7,
+                        'Plate Number': 8,
+                        'Vehicle Type': 9,
+                        'Vehicle Brand': 10,
+                        'Vehicle Model': 11,
+                        'Road Tax': 12
+                    }
+                    index = name_to_index[self.edit_type_cbox.get()]
+                elif data[0] == 'staff':
+                    # edit_type_cbox['values'] = [
+                    #     'Select...', 'Name', 'Vaccination Status', 'Plate Number', 'Vehicle Type',
+                    #     'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                    # ]
+                    name_to_index = {
+                        'Name': 2,
+                        'Vaccination Status': 5,
+                        'Plate Number': 6,
+                        'Vehicle Type': 7,
+                        'Vehicle Brand': 8,
+                        'Vehicle Model': 9,
+                        'Road Tax': 10
+                    }
+                    index = name_to_index[self.edit_type_cbox.get()]
+                elif data[0] == 'officer':
+                    # edit_type_cbox['values'] = [
+                    #     'Select...', 'Name', 'Rank', 'Plate Number', 'Vehicle Type',
+                    #     'Vehicle Brand', 'Vehicle Model', 'Road Tax'
+                    # ]
+                    name_to_index = {
+                        'Name': 2,
+                        'Rank': 5,
+                        'Plate Number': 6,
+                        'Vehicle Type': 7,
+                        'Vehicle Brand': 8,
+                        'Vehicle Model': 9,
+                        'Road Tax': 10
+                    }
+                    index = name_to_index[self.edit_type_cbox.get()]
+
+                curr_val_str = self.edit_type_cbox.get() + ': ' + data[index].cget('text').split(': ')[1]
+
+                current_val_label.configure(text=curr_val_str)
+                y_coord = y_coord + gap + self.edit_type_cbox.winfo_height()
+                current_val_label.place(x=round(margin[0] / 8), y=y_coord)
+
+                edit_value_label.place(x=0, y=0)
+                edit_value_label.update()
+                y_coord_2 = y_coord + round(gap / 2) + current_val_label.winfo_height()
+                edit_value_label.place(x=0, y=y_coord_2)
+
+                if self.edit_type_cbox.get() == 'Name' or self.edit_type_cbox.get() == 'Plate Number' or \
+                        self.edit_type_cbox.get() == 'Vehicle Brand' or self.edit_type_cbox.get() == 'Vehicle Model':
+                    self.edit_value_str.set(self.edit_value_str.get().upper())
+                    edit_value_entry.place(x=0, y=0)
+                    edit_value_entry.update()
+                    y_coord_2 = y_coord_2 + edit_value_label.winfo_height()
+                    edit_value_entry.place(x=0, y=y_coord_2)
+                    self.edit_value_cbox.place_forget()
+                    edit_value_date.place_forget()
+                elif self.edit_type_cbox.get() == 'Year' or self.edit_type_cbox.get() == 'Hostel' or \
+                        self.edit_type_cbox.get() == 'Vaccination Status' or \
+                        self.edit_type_cbox.get() == 'Vehicle Type' or self.edit_type_cbox.get() == 'Rank':
+                    self.edit_value_cbox['values'] = cbox_list[self.edit_type_cbox.get()]
+                    self.edit_value_cbox.current(0)
+                    y_coord_2 = y_coord_2 + edit_value_label.winfo_height()
+                    self.edit_value_cbox.place(x=0, y=y_coord_2)
+                    edit_value_entry.place_forget()
+                    edit_value_date.place_forget()
+                elif self.edit_type_cbox.get() == 'Road Tax':
+                    y_coord_2 = y_coord_2 + edit_value_label.winfo_height()
+                    edit_value_date.set_date(datetime.date.today())
+                    edit_value_date.place(x=0, y=y_coord_2)
+                    edit_value_entry.place_forget()
+                    self.edit_value_cbox.place_forget()
+
+                # button[0].configure(command=lambda a=root, b=edit, c=1, d=data, e=edit_type_cbox.get(),
+                #                                    f=edit_value_str.get().lower(): btn_event(a, b, c, d, e, f))
+                # button[1].configure(command=lambda a=root, b=edit, c=3, d=data, e=edit_type_cbox.get(),
+                #                                    f=edit_value_str.get().lower(): btn_event(a, b, c, d, e, f))
+
+            def set_current():
+                self.edit_type_cbox.current(0)
+
         # Change Theme for ViewDriver
         def change_theme(self, theme):
             self.configure(bg=CP[theme][0])
             self.view_canvas.configure(bg=CP[theme][1])
+            self.prev_label.bind("<ButtonPress-1>", func=lambda event, a=1, b=theme: self.on_press(event, a, b))
+            self.next_label.bind("<ButtonPress-1>", func=lambda event, a=2, b=theme: self.on_press(event, a, b))
+
+            for page in range(1, len(self.sub_frame) + 1):
+                frame_item_ind = (page - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if page == division:
+                    last_page = True
+                else:
+                    last_page = False
+
+                for i, frame in enumerate(self.sub_frame[page - 1]):
+                    # print(self.frame_item[frame_item_ind])
+                    frame.configure(bg=CP[theme][5])
+
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        self.frame_item[frame_item_ind + i][2].configure(bg=CP[theme][5], fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][3].configure(bg=CP[theme][5], fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][4].configure(bg=CP[theme][5], fg=CP[theme][1])
+
+                        add_index = 0
+                        if self.frame_item[frame_item_ind + i][0] == 'student':
+                            self.frame_item[frame_item_ind + i][5].configure(bg=CP[theme][5], fg=CP[theme][1])
+                            self.frame_item[frame_item_ind + i][6].configure(bg=CP[theme][5], fg=CP[theme][1])
+                            self.frame_item[frame_item_ind + i][7].configure(bg=CP[theme][5], fg=CP[theme][1])
+                            add_index = 7
+                        elif self.frame_item[frame_item_ind + i][0] == 'staff':
+                            self.frame_item[frame_item_ind + i][5].configure(bg=CP[theme][5], fg=CP[theme][1])
+                            add_index = 5
+                        elif self.frame_item[frame_item_ind + i][0] == 'officer':
+                            self.frame_item[frame_item_ind + i][5].configure(bg=CP[theme][5], fg=CP[theme][1])
+                            add_index = 5
+
+                        self.frame_item[frame_item_ind + i][add_index + 1].configure(bg=CP[theme][5],
+                                                                                     fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][add_index + 2].configure(bg=CP[theme][5],
+                                                                                     fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][add_index + 3].configure(bg=CP[theme][5],
+                                                                                     fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][add_index + 4].configure(bg=CP[theme][5],
+                                                                                     fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][add_index + 5].configure(bg=CP[theme][5],
+                                                                                     fg=CP[theme][1])
+
+                        self.frame_item[frame_item_ind + i][add_index + 10].configure(bg=CP[theme][10],
+                                                                                      fg=CP[theme][11],
+                                                                                      activebackground=CP[theme][13],
+                                                                                      activeforeground=CP[theme][14])
+                        self.frame_item[frame_item_ind + i][add_index + 11].configure(bg=CP[theme][10],
+                                                                                      fg=CP[theme][11],
+                                                                                      activebackground=CP[theme][13],
+                                                                                      activeforeground=CP[theme][14])
 
             self.num_pg_label.configure(bg=CP[theme][0], fg=CP[theme][1])
-            self.prev_label.configure(bg=CP[theme][0], fg=CP[theme][8])
-            self.next_label.configure(bg=CP[theme][0], fg=CP[theme][8])
+            self.prev_label.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.next_label.configure(bg=CP[theme][0], fg=CP[theme][1])
             self.search_frame.configure(bg=CP[theme][0])
             self.search_btn.configure(bg=CP[theme][5], fg=CP[theme][1], activebackground=CP[theme][8],
                                       activeforeground=CP[theme][9])
@@ -1537,7 +2854,7 @@ class SentsGui(Tk):
 
             x_2 = coord[0] + 3 / 5 * self.driver_name_entry.winfo_width()
             if self.driver_role_cbox.get() == self.driver_role_cbox['values'][1]:
-                print("student")
+                # print("student")
                 self.driver_id_lbl.configure(text="Matric No.: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1554,7 +2871,7 @@ class SentsGui(Tk):
                 self.driver_rank_lbl.place_forget()
                 self.driver_rank_cbox.place_forget()
             elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][2]:
-                print("staff")
+                # print("staff")
                 self.driver_id_lbl.configure(text="Staff ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1570,7 +2887,7 @@ class SentsGui(Tk):
                 self.driver_rank_lbl.place_forget()
                 self.driver_rank_cbox.place_forget()
             elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][3]:
-                print("officer")
+                # print("officer")
                 self.driver_id_lbl.configure(text="Officer ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1776,7 +3093,7 @@ class SentsGui(Tk):
 
             x_2 = coord[0] + 3 / 5 * self.driver_name_entry.winfo_width()
             if self.driver_role_cbox.get() == self.driver_role_cbox['values'][1]:
-                print("student")
+                # print("student")
                 self.driver_id_lbl.configure(text="Matric No.: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1793,7 +3110,7 @@ class SentsGui(Tk):
                 self.driver_rank_lbl.place_forget()
                 self.driver_rank_cbox.place_forget()
             elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][2]:
-                print("staff")
+                # print("staff")
                 self.driver_id_lbl.configure(text="Staff ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1809,7 +3126,7 @@ class SentsGui(Tk):
                 self.driver_rank_lbl.place_forget()
                 self.driver_rank_cbox.place_forget()
             elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][3]:
-                print("officer")
+                # print("officer")
                 self.driver_id_lbl.configure(text="Officer ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.driver_id_lbl.place(x=coord[0], y=coord[1])
@@ -1958,19 +3275,23 @@ class SentsGui(Tk):
 
         def save_driver(self, root):
             """
-            self.driver_name_str = StringVar()
-            self.driver_role_str = StringVar()
-            self.driver_id_str = StringVar()
-            self.driver_year_str = StringVar()
-            self.driver_hostel_str = StringVar()
-            self.driver_rank_str = StringVar()
-            self.driver_vaccine_str = StringVar()
-            self.veh_type_str = StringVar()
-            self.veh_plate_str = StringVar()
-            self.veh_brand_str = StringVar()
-            self.veh_model_str = StringVar()
-            self.veh_roadtax_str = StringVar()
+            # Input
+                self.driver_name_str = StringVar()
+                self.driver_role_str = StringVar()
+                self.driver_id_str = StringVar()
+                self.driver_year_str = StringVar()
+                self.driver_hostel_str = StringVar()
+                self.driver_rank_str = StringVar()
+                self.driver_vaccine_str = StringVar()
+                self.veh_type_str = StringVar()
+                self.veh_plate_str = StringVar()
+                self.veh_brand_str = StringVar()
+                self.veh_model_str = StringVar()
+                self.veh_roadtax_str = StringVar()
+                self.plate_img_path
+                self.driver_img_path
             """
+            # Database Connection
             if self.driver_name_str.get() and self.driver_role_cbox.get() != self.driver_role_cbox['values'][0] and \
                     self.driver_id_str.get() and self.veh_type_cbox.get() != self.veh_type_cbox['values'][0] and \
                     self.veh_plate_str.get() and self.veh_brand_str.get() and \
@@ -1978,6 +3299,25 @@ class SentsGui(Tk):
                     self.plate_img_path and self.driver_img_path:
                 title = "Failed..."
                 desc = "Unknown Reason"
+                split_driver = self.driver_img_path.split('/')
+                split_plate_num = self.plate_img_path.split('/')
+
+                path_driver = ""
+                path_plate_num = ""
+                for i, each_split in enumerate(split_driver):
+                    if i < len(split_driver) - 1:
+                        path_driver += each_split + '/'
+
+                for i, each_split in enumerate(split_plate_num):
+                    if i < len(split_plate_num) - 1:
+                        path_plate_num += each_split + '/'
+
+                file_driver = split_driver[len(split_driver) - 1]
+                file_plate_num = split_plate_num[len(split_plate_num) - 1]
+                # print(path_driver)
+                # print(file_driver)
+                # print(path_plate_num)
+                # print(file_plate_num)
 
                 if self.driver_role_cbox.get() == self.driver_role_cbox['values'][1] and \
                         self.driver_year_cbox.get() != self.driver_year_cbox['values'][0] and \
@@ -1990,6 +3330,11 @@ class SentsGui(Tk):
                                                     self.driver_vaccine_str.get(), self.veh_plate_str.get(),
                                                     self.veh_type_str.get(), self.veh_brand_str.get(),
                                                     self.veh_model_str.get(), self.veh_roadtax_str.get())
+                    if title == 'Success!':
+                        if not fl.up_to_server(path_driver, file_driver, self.driver_id_str.get(), 1) or \
+                                not fl.up_to_server(path_plate_num, file_plate_num, self.driver_id_str.get(), 2):
+                            title = "Failed..."
+                            desc = "Failed to Upload Image"
                 elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][2] and \
                         self.driver_vaccine_cbox.get() != self.driver_vaccine_cbox['values'][0]:
                     # Staff
@@ -1998,34 +3343,31 @@ class SentsGui(Tk):
                                                   self.driver_vaccine_str.get(), self.veh_plate_str.get(),
                                                   self.veh_type_str.get(), self.veh_brand_str.get(),
                                                   self.veh_model_str.get(), self.veh_roadtax_str.get())
+                    if title == 'Success!':
+                        if not fl.up_to_server(path_driver, file_driver, self.driver_id_str.get(), 1) or \
+                                not fl.up_to_server(path_plate_num, file_plate_num, self.driver_id_str.get(), 2):
+                            title = "Failed..."
+                            desc = "Failed to Upload Image"
                 elif self.driver_role_cbox.get() == self.driver_role_cbox['values'][3] and \
                         self.driver_rank_cbox.get() != self.driver_rank_cbox['values'][0]:
                     # Officer
                     print("Save Officer")
+                    print(self.driver_rank_str.get())
                     title, desc = db.insert_officer(self.driver_id_str.get(), self.driver_name_str.get(),
-                                                    rank=self.driver_rank_str.get(), plate_num=self.veh_plate_str.get(),
+                                                    rank=self.driver_rank_str.get(),
+                                                    plate_num=self.veh_plate_str.get(),
                                                     veh_type=self.veh_type_str.get(),
                                                     veh_brand=self.veh_brand_str.get(),
                                                     veh_model=self.veh_model_str.get(),
                                                     road_tax=self.veh_roadtax_str.get())
+                    if title == 'Success!':
+                        if not fl.up_to_server(path_driver, file_driver, self.driver_id_str.get(), 1) or \
+                                not fl.up_to_server(path_plate_num, file_plate_num, self.driver_id_str.get(), 2):
+                            title = "Failed..."
+                            desc = "Failed to Upload Image"
                 else:
                     print("All Field Must be Filled 2")
                     desc = "All Field Must be Filled"
-
-                """
-                # Input
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.driver_name_str.get()
-                    self.plate_img_path
-                    self.driver_img_path
-                """
-                # Database Connection
 
                 SentsGui.Notification(root, title, desc)
             else:
@@ -2187,27 +3529,52 @@ class SentsGui(Tk):
             self.mar_search = 0.92
             self.root = root
             self.borderwidth = 1
+            self.prof_per_frame = 3
             super().__init__(master=canvas, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                              bg=CP[theme][0], highlightthickness=0)
             self.place(x=margin_width, y=margin_height + round(0.05 * main_layout[1]))
 
+            """
             self.scroll_view = Scrollbar(self, bg=CP[theme][1], orient="vertical")
             self.scroll_view.pack(side=RIGHT, fill=Y)
             # self.scroll_view.place(x=0, y=0)
+            """
 
             self.view_canvas = Canvas(self, width=main_layout[0], height=round(self.mar_search * main_layout[1]),
                                       bg=CP[theme][1], highlightthickness=0)
             self.view_canvas.pack(side=LEFT, fill=BOTH, expand=True)
-            self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
-            self.scroll_view.configure(command=self.view_canvas.yview)
+            # self.view_canvas.configure(yscrollcommand=self.scroll_view.set)
+            # self.scroll_view.configure(command=self.view_canvas.yview)
 
             self.admin_list = []
             self.sub_frame = []
             self.canvas_item = []
+            self.page_index = 0
+            self.frame_item = []
+
+            font_setting = "Calibri " + str(round(math.pow(font_size, 1)))
+            self.num_pg_label = Label(root, text="1 / 1", font=font_setting, bg=CP[theme][0], fg=CP[theme][1])
+            font_setting = "Calibri " + str(round(math.pow(font_size, 1.1))) + " bold"
+            self.prev_label = Label(root, text="<", font=font_setting, bg=CP[theme][0], fg=CP[theme][1], padx=10)
+            self.next_label = Label(root, text=">", font=font_setting, bg=CP[theme][0], fg=CP[theme][1], padx=10)
+            self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
+            self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
+            self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
+            self.prev_label.bind("<ButtonPress-1>", func=lambda event, a=1, b=theme: self.on_press(event, a, b))
+            self.prev_label.bind("<ButtonRelease-1>", func=lambda event, a=1, b=root: self.on_release(event, a, b))
+            self.next_label.bind("<ButtonPress-1>", func=lambda event, a=2, b=theme: self.on_press(event, a, b))
+            self.next_label.bind("<ButtonRelease-1>", func=lambda event, a=2, b=root: self.on_release(event, a, b))
+            self.num_pg_label.update()
+            self.prev_label.update()
+            self.next_label.update()
+
+            self.num_pg_label.place_forget()
+            self.prev_label.place_forget()
+            self.next_label.place_forget()
 
             self.place(x=root.winfo_width(), y=root.winfo_height())
             # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
-            self.view_canvas.bind('<Configure>', self.onFrameConfigure)
+            # self.view_canvas.bind('<Configure>', self.onFrameConfigure)
 
             self.search_frame = Frame(canvas, width=main_layout[0], height=round(0.08 * main_layout[1]),
                                       bg=CP[theme][0], highlightthickness=0)
@@ -2216,7 +3583,7 @@ class SentsGui(Tk):
             self.search_str = StringVar()
             self.search_by_str = StringVar()
             self.search_filter_str = StringVar()
-            self.search_sort_str = StringVar()
+            # self.search_sort_str = StringVar()
 
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.89)))
             # print(font_size, font_size * 0.75)
@@ -2250,17 +3617,17 @@ class SentsGui(Tk):
             self.search_filter_cbox.update()
 
             # Default Sort By Name Asc.
-            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
-            self.search_sort_cbox = ttk.Combobox(self.search_frame, width=22, font=font_setting,
-                                                 textvariable=self.search_sort_str, style='pad.TCombobox')
-            self.search_sort_cbox['values'] = ['Sort By...', 'Name Asc.', 'Name Desc.',
-                                               'Staff ID Asc.', 'Staff ID Desc.']
-            self.search_sort_cbox['state'] = 'readonly'  # disabled or readonly
-            self.search_sort_cbox.current(0)
-            self.search_sort_cbox.place(x=coord_x, y=0)
-            self.search_sort_cbox.update()
+            # coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            # self.search_sort_cbox = ttk.Combobox(self.search_frame, width=22, font=font_setting,
+            #                                      textvariable=self.search_sort_str, style='pad.TCombobox')
+            # self.search_sort_cbox['values'] = ['Sort By...', 'Name Asc.', 'Name Desc.',
+            #                                    'Staff ID Asc.', 'Staff ID Desc.']
+            # self.search_sort_cbox['state'] = 'readonly'  # disabled or readonly
+            # self.search_sort_cbox.current(0)
+            # self.search_sort_cbox.place(x=coord_x, y=0)
+            # self.search_sort_cbox.update()
 
-            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
             self.search_btn = Button(self.search_frame, bg=CP[theme][5], fg=CP[theme][1],
                                      activebackground=CP[theme][8], activeforeground=CP[theme][9],
@@ -2271,6 +3638,9 @@ class SentsGui(Tk):
             self.search_btn.update()
 
             self.place_forget()
+            self.num_pg_label.place_forget()
+            self.prev_label.place_forget()
+            self.next_label.place_forget()
 
         def update_res(self, root):
             width = root.winfo_width()
@@ -2285,20 +3655,107 @@ class SentsGui(Tk):
             self.view_canvas.configure(width=main_layout[0], height=round(self.mar_search * main_layout[1]))
             if self.admin_list:
                 self.place(x=margin_width, y=margin_height + round((1 - self.mar_search) * main_layout[1]))
+
+                font_setting = "Calibri " + str(round(math.pow(font_size, 1)))
+                self.num_pg_label.configure(font=font_setting)
+                font_setting = "Calibri " + str(round(math.pow(font_size, 1.1))) + " bold"
+                self.prev_label.configure(font=font_setting)
+                self.next_label.configure(font=font_setting)
+                self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.num_pg_label.update()
+                self.prev_label.update()
+                self.next_label.update()
+
                 self.view_canvas.update()
                 y_coord = 0
-                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
-                for i, frame in enumerate(self.sub_frame):
+                GAP = round(0.25 / 100 * root.winfo_width())
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_item_ind = (self.page_index - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if self.page_index == division:
+                    last_page = True
+                else:
+                    last_page = False
+                for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
                     frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
                     self.view_canvas.coords(self.canvas_item[i], (0, y_coord))
                     y_coord = y_coord + frame_height
 
-                remainder = (frame_height - (self.borderwidth * 2)) * 4 - self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 8)
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        print(self.frame_item[frame_item_ind + i])
+                        font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                        self.frame_item[frame_item_ind + i][0].configure(font=font_setting)
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                        self.frame_item[frame_item_ind + i][1].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][2].configure(font=font_setting)
+
+                        self.frame_item[frame_item_ind + i][0].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][1].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][2].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][0].update()
+                        self.frame_item[frame_item_ind + i][1].update()
+                        self.frame_item[frame_item_ind + i][2].update()
+
+                        coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(18 / 100 * frame_height)]
+                        self.frame_item[frame_item_ind + i][0].place(x=coord[0], y=coord[1])
+                        coord[1] = coord[1] + self.frame_item[frame_item_ind + i][0].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][1].place(x=coord[0], y=coord[1])
+                        y_coord_lbl = coord[1] + self.frame_item[frame_item_ind + i][1].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][2].place(x=coord[0], y=y_coord_lbl)
+
+                        if self.frame_item[frame_item_ind + i][3]:
+                            font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                            self.frame_item[frame_item_ind + i][3].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][3].update()
+                            self.frame_item[frame_item_ind + i][3].place(
+                                x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                    3].winfo_width() - self.borderwidth * 2, y=self.borderwidth)
+
+                        if self.frame_item[frame_item_ind + i][4]:
+                            font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                            self.frame_item[frame_item_ind + i][4].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][4].update()
+                            self.frame_item[frame_item_ind + i][4].place(
+                                x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                    4].winfo_width() - self.borderwidth * 2,
+                                y=self.frame_item[frame_item_ind + i][3].winfo_height() * 1.1)
+
+                remainder = (frame_height - (self.borderwidth * 2)) * self.prof_per_frame - \
+                            self.view_canvas.winfo_height()
+                remainder = remainder + (self.borderwidth * 2 * self.prof_per_frame)
                 self.view_canvas.configure(width=main_layout[0],
                                            height=round(self.mar_search * main_layout[1]) + remainder)
+
+                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
+                                        y=root.winfo_height() - (
+                                                margin_height - self.num_pg_label.winfo_height() / 2))
+                if self.page_index >= len(self.sub_frame) and len(self.sub_frame) > 1:
+                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                            self.prev_label.winfo_width() * 1.5,
+                                          y=(root.winfo_height() - margin_height) +
+                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
+                elif self.page_index > len(self.sub_frame) and len(self.sub_frame) <= 1:
+                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                            self.prev_label.winfo_width() * 1.5,
+                                          y=(root.winfo_height() - margin_height) +
+                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
+
+                if self.page_index < len(self.sub_frame):
+                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                          y=(root.winfo_height() - margin_height) +
+                                            (margin_height / 2 - self.next_label.winfo_height() / 2))
             else:
                 self.place(x=width, y=height)
+                self.num_pg_label.place_forget()
+                self.prev_label.place_forget()
+                self.next_label.place_forget()
 
             self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
             self.search_frame.place(x=margin_width, y=margin_height)
@@ -2325,12 +3782,12 @@ class SentsGui(Tk):
             self.search_filter_cbox.update()
 
             # Default Sort By Name Asc.
-            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
-            self.search_sort_cbox.configure(font=font_setting, style='pad.TCombobox')
-            self.search_sort_cbox.place(x=coord_x, y=0)
-            self.search_sort_cbox.update()
+            # coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
+            # self.search_sort_cbox.configure(font=font_setting, style='pad.TCombobox')
+            # self.search_sort_cbox.place(x=coord_x, y=0)
+            # self.search_sort_cbox.update()
 
-            coord_x = coord_x + self.search_sort_cbox.winfo_width() + math.sqrt(margin_width)
+            coord_x = coord_x + self.search_filter_cbox.winfo_width() + math.sqrt(margin_width)
             font_setting = "Calibri " + str(round(math.pow(font_size, 0.85)))
             self.search_btn.configure(font=font_setting,
                                       command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
@@ -2343,11 +3800,12 @@ class SentsGui(Tk):
                                         format(self.search_by_cbox, font_setting))
             self.search_filter_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
                                             format(self.search_filter_cbox, font_setting))
-            self.search_sort_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
-                                          format(self.search_sort_cbox, font_setting))
+            # self.search_sort_cbox.tk.eval('[ttk::combobox::PopdownWindow {}].f.l configure -font "{}"'.
+            #                               format(self.search_sort_cbox, font_setting))
 
             # Need to Adjust back After Search
-            for frame in self.sub_frame:
+            """
+            for frame in self.sub_frame[self.page_index - 1]:
                 frame.configure(width=main_layout[0])
 
             if self.admin_list:
@@ -2356,28 +3814,50 @@ class SentsGui(Tk):
                                           : self.root._on_mousewheel(event, a, b))
             else:
                 self.view_canvas.bind_all("<MouseWheel>", self.root._on_mousewheel_pass)
+                """
 
             if not self.admin_list:
                 self.place_forget()
+                self.num_pg_label.place_forget()
+                self.prev_label.place_forget()
+                self.next_label.place_forget()
             self.update()
 
         def search_admin(self, margin, root):
+            global CURR_USER
             main_layout = root.main_layout
             theme = root.theme
             self.admin_list.clear()
-            print("Search Driver")
+            print("Search Admin")
             # Test
+            """
             if self.search_str.get() == "test":
                 self.admin_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            """
             """
             Input
                 self.search_str
                 self.search_by_str
-                self.search_sort_str
+                self.search_sort_str (Unused)
                 self.search_filter_str
             """
 
+            search_by = ""
+            if self.search_by_str.get() == self.search_by_cbox['value'][1]:
+                search_by = "name"
+            elif self.search_by_str.get() == self.search_by_cbox['value'][2]:
+                search_by = "id"
+            else:
+                search_by = "name"
+
+            search_filter = ""
+            if self.search_filter_str.get() == self.search_filter_cbox['value'][0]:
+                search_filter = 'all'
+            else:
+                search_filter = self.search_filter_str.get().lower()
+
             # Database Connection
+            self.admin_list = db.search_admin(self.search_str.get(), search_by, search_filter)
 
             """
             Output
@@ -2392,51 +3872,594 @@ class SentsGui(Tk):
 
             # Result Search
             if self.admin_list:
-                self.sub_frame = []
-                self.canvas_item = []
-                self.view_canvas.delete('all')
-                frame_height = math.floor(self.view_canvas.winfo_height() / 4)
+                self.page_index = 1
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * self.winfo_height()))
                 y_coord = 0
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                # print(self.view_canvas.winfo_height(), frame_height)
+                temp_sub_frame = []
+                self.canvas_item = []
+                self.sub_frame = []
+                self.frame_item = []
+                GAP = round(0.25 / 100 * root.winfo_width())
+                self.view_canvas.delete('all')
                 for i, admin in enumerate(self.admin_list):
                     print("\t", admin)
                     each_sub_frame = Frame(self.view_canvas, width=main_layout[0], height=frame_height, bg=CP[theme][5],
                                            highlightthickness=self.borderwidth)
-                    label = Label(each_sub_frame, text=i)
-                    label.place(x=0, y=0)
-                    canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
-                    self.canvas_item.append(canvas_item)
+
+                    # data = (role, staffID, name)
+                    font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                    name = Label(each_sub_frame, text="Name\t: " + admin[2].upper(), font=font_setting,
+                                 bg=CP[root.theme][5],
+                                 fg=CP[root.theme][1])
+
+                    font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                    role = Label(each_sub_frame, text="Role\t: " + admin[0].upper(), font=font_setting,
+                                 bg=CP[root.theme][5],
+                                 fg=CP[root.theme][1])
+                    admin_id = Label(each_sub_frame, text="ID\t: " + admin[1].upper(), font=font_setting,
+                                     bg=CP[root.theme][5],
+                                     fg=CP[root.theme][1])
+
+                    if admin[0] == 'staff':
+                        admin_id.configure(text="Staff ID\t: " + admin[1].upper())
+                    elif admin[0] == 'officer':
+                        admin_id.configure(text="Officer ID\t: " + admin[1].upper())
+
+                    role.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    admin_id.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    name.place(x=self.view_canvas.winfo_width(), y=frame_height)
+                    role.update()
+                    admin_id.update()
+                    name.update()
+
+                    coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(18 / 100 * frame_height)]
+                    name.place(x=coord[0], y=coord[1])
+                    coord[1] = coord[1] + name.winfo_height() + GAP
+                    role.place(x=coord[0], y=coord[1])
+                    y_coord_lbl = coord[1] + role.winfo_height() + GAP
+                    admin_id.place(x=coord[0], y=y_coord_lbl)
+
+                    # if admin[0] == 'staff':
+                    #     self.frame_item.append([admin[0], name, role, admin_id])
+                    # elif admin[0] == 'officer':
+                    #     self.frame_item.append([admin[0], name, role, admin_id])
+
+                    # coord[0] = coord[0] + round(20 / 100 * self.view_canvas.winfo_width())
+                    # y_coord_lbl = coord[1]
+
+                    # canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                    # self.canvas_item.append(canvas_item)
+                    # y_coord = y_coord + frame_height
+                    # self.sub_frame.append(each_sub_frame)
+
+                    if i < self.prof_per_frame:
+                        canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame, anchor=NW)
+                        self.canvas_item.append(canvas_item)
                     y_coord = y_coord + frame_height
-                    self.sub_frame.append(each_sub_frame)
+
+                    each_sub_frame.update()
+                    if CURR_USER == 'root' or (CURR_USER != 'root' and admin[0] == 'officer'):
+                        font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                        edit_btn = Button(each_sub_frame, bg=CP[theme][10], fg=CP[theme][11],
+                                          activebackground=CP[theme][13], activeforeground=CP[theme][14],
+                                          text="Edit", font=font_setting,
+                                          width=round(0.01 * main_layout[0]), pady=1)
+                        remove_btn = Button(each_sub_frame, bg=CP[theme][10], fg=CP[theme][11],
+                                            activebackground=CP[theme][13], activeforeground=CP[theme][14],
+                                            text="Remove", font=font_setting,
+                                            width=round(0.01 * main_layout[0]), pady=1)
+                        # command=lambda a=[margin_width, margin_height, self.mar_search], b=root:
+                        #                                              self.search_driver(a, b)
+                        edit_btn.place(x=0, y=0)
+                        remove_btn.place(x=0, y=0)
+                        edit_btn.update()
+                        remove_btn.update()
+                        edit_btn.place(x=each_sub_frame.winfo_width() - edit_btn.winfo_width() - self.borderwidth * 2,
+                                       y=self.borderwidth)
+                        remove_btn.place(
+                            x=each_sub_frame.winfo_width() - remove_btn.winfo_width() - self.borderwidth * 2,
+                            y=round(edit_btn.winfo_height() * 1.1) + self.borderwidth)
+
+                    if admin[0] == 'staff':
+                        if CURR_USER == 'root':
+                            self.frame_item.append([role, admin_id, name, edit_btn, remove_btn])
+                            self.frame_item[len(self.frame_item) - 1][3].configure(
+                                command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                                self.edit_admin_menu(a, b)
+                            )
+                            self.frame_item[len(self.frame_item) - 1][4].configure(
+                                command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                                self.rem_admin(a, b)
+                            )
+                        else:
+                            self.frame_item.append([role, admin_id, name, None, None])
+
+                    elif admin[0] == 'officer':
+                        self.frame_item.append([role, admin_id, name, edit_btn, remove_btn])
+                        self.frame_item[len(self.frame_item) - 1][3].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.edit_admin_menu(a, b)
+                        )
+                        self.frame_item[len(self.frame_item) - 1][4].configure(
+                            command=lambda a=root, b=self.frame_item[len(self.frame_item) - 1]:
+                            self.rem_admin(a, b)
+                        )
+
+                    if i % self.prof_per_frame < self.prof_per_frame - 1:
+                        temp_sub_frame.append(each_sub_frame)
+                        if i == len(self.admin_list) - 1:
+                            remainder = self.prof_per_frame - (i % self.prof_per_frame)
+
+                            for j in range(0, remainder):
+                                each_sub_frame = Frame(self.view_canvas, width=self.view_canvas.winfo_width(),
+                                                       height=frame_height,
+                                                       bg=CP[theme][5], highlightthickness=self.borderwidth)
+                                temp_sub_frame.append(each_sub_frame)
+
+                                canvas_item = self.view_canvas.create_window((0, y_coord), window=each_sub_frame,
+                                                                             anchor=NW)
+                                self.canvas_item.append(canvas_item)
+                                y_coord = y_coord + frame_height
+                            self.sub_frame.append(temp_sub_frame)
+                    else:
+                        temp_sub_frame.append(each_sub_frame)
+                        self.sub_frame.append(temp_sub_frame)
+                        temp_sub_frame = []
 
                 self.configure(width=main_layout[0], height=round(margin[2] * main_layout[1]))
                 self.place(x=margin[0], y=margin[1] + round((1 - margin[2]) * main_layout[1]))
 
-                remainder = (frame_height - (self.borderwidth * 2)) * 4 - self.view_canvas.winfo_height()
-                remainder = remainder + (self.borderwidth * 8)
-                self.view_canvas.configure(width=main_layout[0],
-                                           height=round(self.mar_search * main_layout[1]) + remainder)
+                remainder = self.view_canvas.winfo_height() - (frame_height - (self.borderwidth * 2)) * \
+                            self.prof_per_frame
+                remainder = remainder - (self.borderwidth * 2 * self.prof_per_frame)
 
+                self.view_canvas.configure(width=main_layout[0], height=self.view_canvas.winfo_height() - remainder)
+                self.view_canvas.update()
                 self.search_frame.configure(width=main_layout[0], height=round(0.08 * main_layout[1]))
                 self.search_frame.place(x=margin[0], y=margin[1])
-                self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+                # self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
 
-                self.view_canvas.bind_all("<MouseWheel>",
-                                          lambda event, a=self, b=margin,
-                                          : self.root._on_mousewheel(event, a, b))
+                font_setting = "Calibri " + str(round(math.pow(root.font_size, 1)))
+                self.num_pg_label.configure(font=font_setting, text=("1 / " + str(len(self.sub_frame))))
+                font_setting = "Calibri " + str(round(math.pow(root.font_size, 1.1))) + " bold"
+                self.prev_label.configure(font=font_setting)
+                self.next_label.configure(font=font_setting)
+                self.num_pg_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.prev_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.next_label.place(x=root.winfo_width(), y=root.winfo_height())
+                self.num_pg_label.update()
+                self.prev_label.update()
+                self.next_label.update()
+
+                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
+                                        y=root.winfo_height() - (
+                                                margin[1] - self.num_pg_label.winfo_height() / 2))
+                """self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                        self.prev_label.winfo_width() * 1.5,
+                                      y=(root.winfo_height() - margin[1]) +
+                                        (margin[1] / 2 - self.next_label.winfo_height() / 2))"""
+                if len(self.sub_frame) > 1:
+                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                          y=(root.winfo_height() - margin[1]) +
+                                            (margin[1] / 2 - self.next_label.winfo_height() / 2))
             else:
                 self.place_forget()
-                self.view_canvas.bind_all("<MouseWheel>", self.root._on_mousewheel_pass)
+                # self.view_canvas.bind_all("<MouseWheel>", self.root._on_mousewheel_pass)
+                self.num_pg_label.place_forget()
+                self.prev_label.place_forget()
+                self.next_label.place_forget()
+                print("Empty Search Result")
 
-        def onFrameConfigure(self, event):
-            self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+        # def onFrameConfigure(self, event):
+        #     self.view_canvas.configure(scrollregion=self.view_canvas.bbox("all"))
+
+        def rem_admin(self, root, data):
+            confirm = Toplevel(root)
+            width = 320
+            height = 180
+            x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
+            y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
+            gap = 50
+            entry_length = 20
+
+            confirm.title('Confirmation')
+            confirm.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+            # self.attributes('-topmost', True)
+            confirm.grab_set()
+            # self.grab_release()  # After Finish Setting
+            confirm.resizable(False, False)
+
+            confirm_main_canvas = Canvas(confirm, highlightthickness=0, bg=CP[root.theme][5],
+                                         width=width, height=height)
+            confirm_main_canvas.place(x=0, y=0)
+            confirm_main_canvas.update()
+
+            confirm_frame = Frame(confirm_main_canvas, bg=CP[root.theme][5])
+            font_setting = "Calibri " + str(15)  # round(root.font_size * 0.85)
+            confirm_label = Label(confirm_main_canvas, font=font_setting, text='Confirm to Remove?',
+                                  bg=CP[root.theme][5], fg=CP[root.theme][1])
+            confirm_label.place(x=0, y=0)
+            confirm_label.update()
+            confirm_label.place(x=width / 2 - confirm_label.winfo_width() / 2,
+                                y=height / 4)
+
+            font_setting = "Calibri " + str(10)  # round(root.font_size * 0.65)
+            confirm_ok_btn = Button(confirm_main_canvas, font=font_setting, text="Confirm", width=8,
+                                    bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                    activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                    command=lambda a=root, b=confirm, c=2, d=data: btn_event(a, b, c, d))
+            confirm_ok_btn.place(x=width, y=height)
+            confirm_ok_btn.update()
+            confirm_ok_btn.place(x=width / 2 - confirm_ok_btn.winfo_width() - 10,
+                                 y=3 * height / 4 - confirm_ok_btn.winfo_height())
+            confirm_ok_btn.update()
+
+            confirm_cancel_btn = Button(confirm_main_canvas, font=font_setting, text="Cancel", width=8,
+                                        bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                        activebackground=CP[root.theme][13], activeforeground=CP[root.theme][14],
+                                        command=lambda a=root, b=confirm, c=1, d=data: btn_event(a, b, c, d))
+            confirm_cancel_btn.place(x=width, y=height)
+            confirm_cancel_btn.update()
+            confirm_cancel_btn.place(x=width / 2 + 10,
+                                     y=3 * height / 4 - confirm_cancel_btn.winfo_height())
+            confirm_cancel_btn.update()
+
+            def btn_event(root, confirm, type, data):
+                # type = 2 is originally for port, got taken out
+                # print(data)
+                # print(data[0].cget('text').split(': ')[1].lower())
+                if type == 1:
+                    confirm.destroy()
+                elif type == 2:
+                    label_data = []
+                    if data[0].cget('text').split(': ')[1].lower() == 'staff':
+                        label_data = ['admin', 'staffID', data[1].cget('text').split(': ')[1].upper(),
+                                      data[2].cget('text').split(': ')[1].upper()]
+                    elif data[0].cget('text').split(': ')[1].lower() == 'officer':
+                        label_data = ['officer', 'officerID', data[1].cget('text').split(': ')[1].upper(),
+                                      data[2].cget('text').split(': ')[1].upper()]
+
+                    # print(label_data)
+                    stats, msg = db.remove_admin(label_data)
+                    confirm.destroy()
+
+                    title = ''
+                    desc = msg
+                    if stats:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
+                    SentsGui.Notification(root, title, desc)
+
+                    # Update Search List
+                    self.search_admin([root.margin_width, root.margin_height, self.mar_search], root)
+
+        def edit_admin_menu(self, root, data):
+            edit = Toplevel(root)
+            width = round(45 / 100 * self.winfo_screenwidth())
+            height = round(50 / 100 * self.winfo_screenheight())
+            x = round(root.winfo_width() / 2 - width / 2) + root.winfo_x()
+            y = round(root.winfo_height() / 2 - height / 2) + root.winfo_y()
+            gap = 50
+            entry_length = 20
+
+            edit.title('Confirmation')
+            edit.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+            # self.attributes('-topmost', True)
+            edit.grab_set()
+            # self.grab_release()  # After Finish Setting
+            edit.resizable(False, False)
+
+            edit_main_canvas = Canvas(edit, highlightthickness=0, bg=CP[root.theme][5],
+                                      width=width, height=height)
+            edit_main_canvas.place(x=0, y=0)
+            edit_main_canvas.update()
+
+            font_size = round(self.winfo_screenwidth() / 100)
+            margin = [round(0.1 * edit.winfo_width()), round(0.08 * edit.winfo_height())]
+
+            edit_frame = Frame(edit_main_canvas, bg=CP[root.theme][5], width=width - margin[0] * 2,
+                               height=height - margin[1] * 2)
+            edit_frame.place(x=width, y=height)
+            edit_frame.update()
+
+            font_setting = "Calibri " + str(round(font_size * 1.3))
+            title_lbl = Label(edit_frame, text="Edit Admin ", font=font_setting,
+                              bg=CP[root.theme][5], fg=CP[root.theme][1])
+            title_lbl.place(x=width, y=height)
+            title_lbl.update()
+
+            font_setting = "Calibri " + str(round(font_size * 0.85))
+            name_lbl = Label(edit_frame, text="Name: ", font=font_setting,
+                             bg=CP[root.theme][5], fg=CP[root.theme][1])
+            # self.username_lbl = Label(self, text="User Name: ", font=font_setting,
+            #                           bg=CP[theme][0], fg=CP[theme][1])
+            pass_res_lbl = Label(edit_frame, text="Password", font=font_setting,
+                                 bg=CP[root.theme][5], fg=CP[root.theme][1])
+
+            # font_setting = "Calibri " + str(round(font_size * 0.75))
+            font_setting = "Calibri " + str(round(math.pow(font_size, 0.87)))
+            self.name_str = StringVar()
+            # self.username_str = StringVar()
+
+            entry_length = 65
+            name_entry = ttk.Entry(edit_frame, width=round(entry_length), textvariable=self.name_str,
+                                   font=font_setting, style='pad.TEntry')
+            entry_length = 30
+            # self.username_entry = ttk.Entry(self, width=round(entry_length), textvariable=self.username_str,
+            #                                 font=font_setting, style='pad.TEntry')
+
+            name_entry.place(x=root.winfo_width(), y=root.winfo_width())
+            name_entry.update()
+
+            # coord = [main_layout[0] / 2 - self.name_entry.winfo_width() / 2, main_layout[1] / 5]
+            coord = [0, 0]
+
+            gap_label_entry = 15
+            gap_cat = 50
+            title_lbl.place(x=edit_frame.winfo_width() / 2 - title_lbl.winfo_width() / 2, y=coord[1])
+            coord[1] = coord[1] + title_lbl.winfo_height() + gap * 1.2
+            name_lbl.place(x=coord[0], y=coord[1])
+            name_lbl.update()
+            coord[1] = coord[1] + name_lbl.winfo_height() + gap_label_entry
+            name_entry.place(x=coord[0], y=coord[1])
+            name_entry.update()
+            y_btn_name = coord[1]
+            # coord[1] = coord[1] + gap_cat
+            # self.username_lbl.place(x=coord[0], y=coord[1])
+            # self.username_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
+            # y_btn_username = coord[1] + gap_label_entry
+            coord[1] = coord[1] + name_entry.winfo_height() + gap_cat
+            pass_res_lbl.place(x=coord[0], y=coord[1])
+            pass_res_lbl.update()
+            y_btn_pass = coord[1]
+            coord[1] = coord[1] + gap_cat
+
+            font_setting = "Calibri " + str(round(font_size * 0.65))
+            name_update_btn = Button(edit_frame, text="Update", font=font_setting, padx=8, pady=1,
+                                     bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                     command=lambda a=root, b=edit, c=1, d=data: btn_event(a, b, c, d))
+            name_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
+            name_update_btn.update()
+            name_update_btn.place(x=coord[0] + name_entry.winfo_width() + margin[0] / 5,
+                                  y=y_btn_name + name_entry.winfo_height() / 2 -
+                                    name_update_btn.winfo_height() / 2)
+
+            # self.username_update_btn = Button(self, text="Update", font=font_setting, padx=8, pady=1,
+            #                                   bg=CP[theme][5], fg=CP[theme][1],
+            #                                   command=lambda a=2, b=root: self.update_profile(a, b))
+            # self.username_update_btn.place(x=root.winfo_width(), y=root.winfo_height())
+            # self.username_update_btn.update()
+            # self.username_update_btn.place(x=coord[0] + self.username_entry.winfo_width() + margin_width / 5,
+            #                                y=y_btn_username + self.username_entry.winfo_height() / 2 -
+            #                                  self.username_update_btn.winfo_height() / 2)
+
+            pass_res_btn = Button(edit_frame, text="Reset", font=font_setting, padx=8, pady=1,
+                                  bg=CP[root.theme][10], fg=CP[root.theme][11],
+                                  command=lambda a=root, b=edit, c=2, d=data: btn_event(a, b, c, d))
+            pass_res_btn.place(x=root.winfo_width(), y=root.winfo_height())
+            pass_res_btn.update()
+            pass_res_btn.place(x=coord[0] + pass_res_lbl.winfo_width() + margin[0] / 2,
+                               y=y_btn_pass + pass_res_lbl.winfo_height() / 2 -
+                                 pass_res_btn.winfo_height() / 2)
+
+            font_setting = "Calibri " + str(round(font_size * 0.8))
+            close_btn = Button(edit_main_canvas, text="Close", font=font_setting, padx=15, pady=1,
+                               bg=CP[root.theme][10], fg=CP[root.theme][11],
+                               command=lambda a=root, b=edit, c=3, d=data: btn_event(a, b, c, d))  # , command=
+            close_btn.place(x=root.winfo_width(), y=root.winfo_height())
+            close_btn.update()
+            close_btn.place(x=width - margin[0] - close_btn.winfo_width() * 1.5,
+                            y=height - margin[1] - close_btn.winfo_height())
+
+            edit_frame.place(x=margin[0], y=margin[1])
+
+            def btn_event(root, edit, type, data):
+                if type == 1 and self.name_str.get().upper():
+                    label_data = []
+                    if data[0].cget('text').split(': ')[1].lower() == 'staff':
+                        label_data = ['admin', 'staffID', 'name', data[1].cget('text').split(': ')[1].upper(),
+                                      self.name_str.get().upper()]
+                    elif data[0].cget('text').split(': ')[1].lower() == 'officer':
+                        label_data = ['officer', 'officerID', 'officerName',
+                                      data[1].cget('text').split(': ')[1].upper(),
+                                      self.name_str.get().upper()]
+                    stat, msg = db.edit_admin(label_data)
+                    title = ''
+                    if stat:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
+                    SentsGui.Notification(root, title, msg)
+                elif type == 2:
+                    label_data = []
+                    if data[0].cget('text').split(': ')[1].lower() == 'staff':
+                        label_data = ['admin', 'staffID', 'password', data[1].cget('text').split(': ')[1].upper(),
+                                      data[2].cget('text').split(': ')[1].upper()]
+                    elif data[0].cget('text').split(': ')[1].lower() == 'officer':
+                        label_data = ['officer', 'officerID', 'password', data[1].cget('text').split(': ')[1].upper(),
+                                      data[1].cget('text').split(': ')[1].upper()]
+                    stat, msg = db.edit_admin(label_data)
+                    title = ''
+                    if stat:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
+                    SentsGui.Notification(root, title, msg)
+                elif type == 3:
+                    self.search_admin([root.margin_width, root.margin_height, self.mar_search], root)
+                    edit.destroy()
+
+        def on_press(self, event, type, theme):
+            if type == 1:
+                self.prev_label.configure(bg=CP[theme][3])
+            elif type == 2:
+                self.next_label.configure(bg=CP[theme][3])
+
+        def on_release(self, event, type, root):
+            if type == 1:
+                self.prev_label.configure(bg=CP[root.theme][0])
+                self.page_index = self.page_index - 1
+
+                self.view_canvas.update()
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                y_coord = 0
+                self.view_canvas.delete('all')
+                self.canvas_item = []
+                for frame in self.sub_frame[self.page_index - 1]:
+                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
+                    canvas_item = self.view_canvas.create_window((0, y_coord), window=frame, anchor=NW)
+                    self.canvas_item.append(canvas_item)
+                    y_coord = y_coord + frame_height
+
+                self.num_pg_label.configure(text=(str(self.page_index) + " / " + str(len(self.sub_frame))))
+                self.num_pg_label.update()
+                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
+                                        y=root.winfo_height() -
+                                          (root.margin_height - self.num_pg_label.winfo_height() / 2))
+
+                self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                        self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                      y=(root.winfo_height() - root.margin_height) +
+                                        (root.margin_height / 2 - self.next_label.winfo_height() / 2))
+
+                if self.page_index > 1:
+                    self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                            self.prev_label.winfo_width() * 1.5,
+                                          y=(root.winfo_height() - root.margin_height) +
+                                            (root.margin_height / 2 - self.next_label.winfo_height() / 2))
+                else:
+                    self.prev_label.place_forget()
+            elif type == 2:
+                self.next_label.configure(bg=CP[root.theme][0])
+                self.page_index = self.page_index + 1
+
+                self.view_canvas.update()
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                y_coord = 0
+                self.view_canvas.delete('all')
+                self.canvas_item = []
+                for frame in self.sub_frame[self.page_index - 1]:
+                    frame.configure(width=self.view_canvas.winfo_width(), height=frame_height)
+                    canvas_item = self.view_canvas.create_window((0, y_coord), window=frame, anchor=NW)
+                    self.canvas_item.append(canvas_item)
+                    y_coord = y_coord + frame_height
+
+                self.num_pg_label.configure(text=(str(self.page_index) + " / " + str(len(self.sub_frame))))
+                self.num_pg_label.update()
+                self.num_pg_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2,
+                                        y=root.winfo_height() -
+                                          (root.margin_height - self.num_pg_label.winfo_height() / 2))
+
+                self.prev_label.place(x=(root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2) -
+                                        self.prev_label.winfo_width() * 1.5,
+                                      y=(root.winfo_height() - root.margin_height) +
+                                        (root.margin_height / 2 - self.next_label.winfo_height() / 2))
+
+                if self.page_index < len(self.sub_frame):
+                    self.next_label.place(x=root.winfo_width() / 2 - self.num_pg_label.winfo_width() / 2 +
+                                            self.num_pg_label.winfo_width() + self.next_label.winfo_width() / 2,
+                                          y=(root.winfo_height() - root.margin_height) +
+                                            (root.margin_height / 2 - self.next_label.winfo_height() / 2))
+                else:
+                    self.next_label.place_forget()
+
+            if 1 <= type <= 2:
+                GAP = round(0.25 / 100 * root.winfo_width())
+                frame_height = math.floor(self.view_canvas.winfo_height() / self.prof_per_frame)
+                frame_item_ind = (self.page_index - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if self.page_index == division:
+                    last_page = True
+                else:
+                    last_page = False
+                for i, frame in enumerate(self.sub_frame[self.page_index - 1]):
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                        self.frame_item[frame_item_ind + i][0].configure(font=font_setting)
+
+                        font_setting = "Calibri " + str(round(root.font_size * 0.8))
+                        self.frame_item[frame_item_ind + i][1].configure(font=font_setting)
+                        self.frame_item[frame_item_ind + i][2].configure(font=font_setting)
+
+                        self.frame_item[frame_item_ind + i][0].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][1].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][2].place(x=self.view_canvas.winfo_width(), y=frame_height)
+                        self.frame_item[frame_item_ind + i][0].update()
+                        self.frame_item[frame_item_ind + i][1].update()
+                        self.frame_item[frame_item_ind + i][2].update()
+
+                        coord = [round(20 / 100 * self.view_canvas.winfo_width()), round(18 / 100 * frame_height)]
+                        self.frame_item[frame_item_ind + i][0].place(x=coord[0], y=coord[1])
+                        coord[1] = coord[1] + self.frame_item[frame_item_ind + i][0].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][1].place(x=coord[0], y=coord[1])
+                        y_coord_lbl = coord[1] + self.frame_item[frame_item_ind + i][1].winfo_height() + GAP
+                        self.frame_item[frame_item_ind + i][2].place(x=coord[0], y=y_coord_lbl)
+
+                        if self.frame_item[frame_item_ind + i][3]:
+                            font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                            self.frame_item[frame_item_ind + i][3].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][3].update()
+                            self.frame_item[frame_item_ind + i][3].place(
+                                x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                    3].winfo_width() - self.borderwidth * 2, y=self.borderwidth)
+
+                        if self.frame_item[frame_item_ind + i][4]:
+                            font_setting = "Calibri " + str(round(root.font_size * 0.7)) + " bold"
+                            self.frame_item[frame_item_ind + i][4].configure(font=font_setting)
+                            self.frame_item[frame_item_ind + i][4].update()
+                            self.frame_item[frame_item_ind + i][4].place(
+                                x=frame.winfo_width() - self.frame_item[frame_item_ind + i][
+                                    4].winfo_width() - self.borderwidth * 2,
+                                y=self.frame_item[frame_item_ind + i][3].winfo_height() * 1.1)
 
         # Change Theme for ViewAdmin
         def change_theme(self, theme):
             self.configure(bg=CP[theme][0])
 
-            self.scroll_view.configure(bg=CP[theme][1])
+            # self.scroll_view.configure(bg=CP[theme][1])
+            self.prev_label.bind("<ButtonPress-1>", func=lambda event, a=1, b=theme: self.on_press(event, a, b))
+            self.next_label.bind("<ButtonPress-1>", func=lambda event, a=2, b=theme: self.on_press(event, a, b))
 
+            for page in range(1, len(self.sub_frame) + 1):
+                frame_item_ind = (page - 1) * self.prof_per_frame
+                division = math.ceil(len(self.frame_item) / self.prof_per_frame)
+                remainder = len(self.frame_item) % self.prof_per_frame
+                last_page = False
+                # print("PG IND: ", self.page_index, "\tDIV", division)
+                if page == division:
+                    last_page = True
+                else:
+                    last_page = False
+
+                for i, frame in enumerate(self.sub_frame[page - 1]):
+                    print(self.frame_item[frame_item_ind])
+                    frame.configure(bg=CP[theme][5])
+
+                    if not last_page or (last_page and i < remainder) or remainder == 0:
+                        self.frame_item[frame_item_ind + i][0].configure(bg=CP[theme][5], fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][1].configure(bg=CP[theme][5], fg=CP[theme][1])
+                        self.frame_item[frame_item_ind + i][2].configure(bg=CP[theme][5], fg=CP[theme][1])
+
+                        if self.frame_item[frame_item_ind + i][3]:
+                            self.frame_item[frame_item_ind + i][3].configure(bg=CP[theme][10], fg=CP[theme][11],
+                                                                             activebackground=CP[theme][13],
+                                                                             activeforeground=CP[theme][14])
+
+                        if self.frame_item[frame_item_ind + i][4]:
+                            self.frame_item[frame_item_ind + i][4].configure(bg=CP[theme][10], fg=CP[theme][11],
+                                                                             activebackground=CP[theme][13],
+                                                                             activeforeground=CP[theme][14])
+
+            self.num_pg_label.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.prev_label.configure(bg=CP[theme][0], fg=CP[theme][1])
+            self.next_label.configure(bg=CP[theme][0], fg=CP[theme][1])
             self.view_canvas.configure(bg=CP[theme][1])
             self.search_frame.configure(bg=CP[theme][0])
             self.search_btn.configure(bg=CP[theme][5], fg=CP[theme][1],
@@ -2477,7 +4500,8 @@ class SentsGui(Tk):
             pc = str(round(self.winfo_width() / 118))
             self.privilege_cbox = ttk.Combobox(self, width=round(entry_length - 2), font=font_setting,
                                                textvariable=self.privilege_str, style='pad.TCombobox')
-            self.privilege_cbox['values'] = ['Select...', 'Admin', 'Security']
+            self.privilege_cbox['values'] = ['Select...', 'Security', 'Admin']
+
             self.privilege_cbox['state'] = 'readonly'  # disabled or readonly
             self.privilege_cbox.current(0)
             self.privilege_prev = self.privilege_cbox.get()
@@ -2507,7 +4531,7 @@ class SentsGui(Tk):
             if self.privilege_cbox.get() == self.privilege_cbox['values'][0]:
                 pass
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][1]:
-                self.user_id_lbl.configure(text="Staff ID: ")
+                self.user_id_lbl.configure(text="Officer ID: ")
                 font_setting = "Calibri " + str(round(font_size * 0.71))
                 self.pass_lbl.configure(font=font_setting)
                 coord[1] = coord[1] + gap_cat
@@ -2518,7 +4542,7 @@ class SentsGui(Tk):
                 # self.username_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
                 self.pass_lbl.place(x=coord[0], y=coord[1] + gap_label_entry * 2)
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][2]:
-                self.user_id_lbl.configure(text="Officer ID: ")
+                self.user_id_lbl.configure(text="Staff ID: ")
                 font_setting = "Calibri " + str(round(font_size * 0.71))
                 self.pass_lbl.configure(font=font_setting)
                 coord[1] = coord[1] + gap_cat
@@ -2548,6 +4572,7 @@ class SentsGui(Tk):
             self.place_forget()
 
         def update_res(self, root):
+            global PRIVILEGE
             width = root.winfo_width()
             height = root.winfo_height()
             font_size = root.font_size
@@ -2576,6 +4601,11 @@ class SentsGui(Tk):
             # self.username_entry.configure(font=font_setting, style='pad.TEntry')
             pc = str(round(self.winfo_width() / 118))
             self.privilege_cbox.configure(font=font_setting, style='pad.TCombobox')
+            print('Privilege:', PRIVILEGE)
+            if PRIVILEGE == 'root':
+                self.privilege_cbox['values'] = ['Select...', 'Security', 'Admin']
+            else:
+                self.privilege_cbox['values'] = ['Select...', 'Security']
 
             self.name_entry.place(x=width, y=height)
             self.name_entry.update()
@@ -2596,7 +4626,7 @@ class SentsGui(Tk):
             if self.privilege_cbox.get() == self.privilege_cbox['values'][0]:
                 pass
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][1]:
-                self.user_id_lbl.configure(text="Staff ID: ")
+                self.user_id_lbl.configure(text="Officer ID: ")
                 font_setting = "Calibri " + str(round(font_size * 0.71))
                 self.pass_lbl.configure(font=font_setting)
                 coord[1] = coord[1] + gap_cat
@@ -2607,7 +4637,7 @@ class SentsGui(Tk):
                 # self.username_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
                 self.pass_lbl.place(x=coord[0], y=coord[1] + gap_label_entry * 2)
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][2]:
-                self.user_id_lbl.configure(text="Officer ID: ")
+                self.user_id_lbl.configure(text="Staff ID: ")
                 font_setting = "Calibri " + str(round(font_size * 0.71))
                 self.pass_lbl.configure(font=font_setting)
                 coord[1] = coord[1] + gap_cat
@@ -2660,11 +4690,11 @@ class SentsGui(Tk):
                 title = "Failed..."
                 desc = "Reason Unknown"
                 if self.privilege_str.get() == self.privilege_cbox['values'][1]:
-                    title, desc = db.insert_admin(self.name_str.get(), self.user_id_str.get(),
-                                                  password=self.user_id_str.get())
-                elif self.privilege_str.get() == self.privilege_cbox['values'][2]:
                     title, desc = db.insert_officer(self.user_id_str.get(), self.name_str.get(),
                                                     password=self.user_id_str.get())
+                elif self.privilege_str.get() == self.privilege_cbox['values'][2]:
+                    title, desc = db.insert_admin(self.name_str.get(), self.user_id_str.get(),
+                                                  password=self.user_id_str.get().upper())
 
                 SentsGui.Notification(root, title, desc)
             else:
@@ -2704,7 +4734,7 @@ class SentsGui(Tk):
                 # self.username_entry.place_forget()
                 self.pass_lbl.place_forget()
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][1]:
-                self.user_id_lbl.configure(text="Staff ID: ")
+                self.user_id_lbl.configure(text="Officer ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.user_id_lbl.place(x=coord[0], y=coord[1])
                 self.user_id_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
@@ -2713,7 +4743,7 @@ class SentsGui(Tk):
                 # self.username_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
                 self.pass_lbl.place(x=coord[0], y=coord[1] + gap_label_entry * 2)
             elif self.privilege_cbox.get() == self.privilege_cbox['values'][2]:
-                self.user_id_lbl.configure(text="Officer ID: ")
+                self.user_id_lbl.configure(text="Staff ID: ")
                 coord[1] = coord[1] + gap_cat
                 self.user_id_lbl.place(x=coord[0], y=coord[1])
                 self.user_id_entry.place(x=coord[0], y=coord[1] + gap_label_entry)
@@ -2919,17 +4949,25 @@ class SentsGui(Tk):
             self.conf_pass_str.set("")
 
         def update_profile(self, type, root):
+            global CURR_USER
             if type == 1:
                 if self.name_str.get():
                     """
                     # Input
                         self.name_str.get()
                     """
+                    stats, msg = db.edit_admin_personal(CURR_USER, 'Staff', 'Name', self.name_str.get().upper())
+
+                    title = ''
+                    if stats:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
 
                     print("Save Name")
                     # Database Connection
 
-                    SentsGui.Notification(root, "Test", "Test")
+                    SentsGui.Notification(root, title, msg)
                 else:
                     print("Name Field Must be Filled")
                     SentsGui.Notification(root, "Failed!", "Name Field Must be Filled")
@@ -2952,9 +4990,17 @@ class SentsGui(Tk):
                         self.new_pass_str.get()
                         self.conf_pass_str.get()
                     """
+                    stats, msg = db.edit_admin_personal(CURR_USER, 'Staff', 'Password', self.conf_pass_str.get())
+
+                    title = ''
+                    if stats:
+                        title = 'Success!'
+                    else:
+                        title = 'Failed...'
+
                     print("Save Password")
                     # Database Connection
-                    SentsGui.Notification(root, "Test", "Test")
+                    SentsGui.Notification(root, title, msg)
                 elif self.new_pass_str.get():
                     print("New Password and Confirm Password are not Same")
                     SentsGui.Notification(root, "Failed!", "New Password and Confirm Password\nare not Same", 0.78)
@@ -3193,7 +5239,28 @@ def main():
 
 
 def get_setting():
-    global db
+    global db, fl
+    if not os.path.isdir(TEMP_FOLDER):
+        os.mkdir(TEMP_FOLDER)
+    if not os.path.isdir(os.path.join(TEMP_FOLDER, DRIVER_FOLDER)):
+        os.mkdir(os.path.join(TEMP_FOLDER, DRIVER_FOLDER))
+    if not os.path.isdir(os.path.join(TEMP_FOLDER, PLT_NUM_FOLDER)):
+        os.mkdir(os.path.join(TEMP_FOLDER, PLT_NUM_FOLDER))
+
+    if not os.path.isfile('setting.txt'):
+        f = open('setting.txt', 'x')
+        text = ""
+        text += "host=localhost\n"
+        text += "\nMySQL\n"
+        text += "port_sql=\n"
+        text += "user_sql=\n"
+        text += "pass_sql=\n"
+        text += "\nFileZilla\n"
+        text += "user_fl=\n"
+        text += "pass_fl=\n"
+        f.write(text)
+        f.close()
+
     with open('setting.txt', 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -3201,15 +5268,24 @@ def get_setting():
                 server_setting[0] = line.split('=')[1].replace("\n", "")
                 if server_setting[0] == "":
                     server_setting[0] = None
-            elif line.find("user=") == 0:
+            elif line.find("user_sql=") == 0:
                 server_setting[2] = line.split('=')[1].replace("\n", "")
                 if server_setting[2] == "":
                     server_setting[2] = None
-            elif line.find("pass=") == 0:
+            elif line.find("pass_sql=") == 0:
                 server_setting[3] = line.split('=')[1].replace("\n", "")
                 if server_setting[3] == "":
                     server_setting[3] = None
-    db = Database(server_setting[0], server_setting[2], server_setting[3])
+            elif line.find("user_fl=") == 0:
+                server_setting[4] = line.split('=')[1].replace("\n", "")
+                if server_setting[4] == "":
+                    server_setting[4] = None
+            elif line.find("pass_fl=") == 0:
+                server_setting[5] = line.split('=')[1].replace("\n", "")
+                if server_setting[5] == "":
+                    server_setting[5] = None
+    db = MySQL(server_setting[0], server_setting[2], server_setting[3])
+    fl = Filezilla(host=server_setting[0], user=server_setting[4], password=server_setting[5])
 
 
 if __name__ == "__main__":

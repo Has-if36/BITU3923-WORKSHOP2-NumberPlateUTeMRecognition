@@ -1,20 +1,23 @@
 SentsGuiAdmin
-- Tmbh superadmin?
-- BUG: Something wrong w/ rank (INSERT NULL)
-	POTENTIAL CAUSE: something on GUI
+- Improvise remove driver
+	- utk staff/officer, tak le remove, sbb ade admin table
+		-SOLUTION: Set data to null to act as remove
 
 SentsGuiSecurity
 - Add Fail Safe for AI
 	- Tambah Key in no. plate
 	
-Database
-- POTENTIAL BUG: Fatal Error to JOIN Search in SQL (Especially Student JOIN VEHICLE)
-	- POTENTIAL FIX: Set attributes to nullable
-
 
 ===DONE===
 SentsGuiAdmin
+- Tmbh root
+- BUG: Something wrong w/ rank (INSERT NULL)
+	POTENTIAL CAUSE: something on GUI
 
 SentsGuiSecurity
 - Add Login
 	- Elakkan Unknown User baca Log
+
+Database
+- POTENTIAL BUG: Fatal Error to JOIN Search in SQL (Especially Student JOIN VEHICLE)
+	- POTENTIAL FIX: Set attributes to nullable

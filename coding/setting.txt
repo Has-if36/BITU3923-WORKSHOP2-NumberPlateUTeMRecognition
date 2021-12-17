@@ -1,4 +1,10 @@
 host=localhost
-port=
-user=
-pass=
+
+MySQL
+port_sql=
+user_sql=
+pass_sql=
+
+FileZilla
+user_fl=pnradmin
+pass_fl=pnradmin

@@ -1,3 +1,7 @@
+import os
+import shutil
+import ftplib
+import zipfile
 import mysql.connector
 from datetime import datetime
 
@@ -5,14 +9,16 @@ from datetime import datetime
     Search Tag:
         INIT & UPDATE CONNECTION
         SEARCH DRIVER
+        SEARCH ADMIN
         ADD DRIVER
         ADD ADMIN
         USED BY OTHER FUNCTION
+        OTHERS
         UNUSED
 """
 
 
-class Database:
+class MySQL:
     ######### INIT & UPDATE CONNECTION #####################################################################################
     def __init__(self, host=None, user=None, password=None):
         self.db = None
@@ -29,6 +35,29 @@ class Database:
         else:
             self.password = password
 
+        try:
+            if not self.password:
+                self.db = mysql.connector.connect(
+                    host=self.host,
+                    user=self.user
+                )
+            else:
+                self.db = mysql.connector.connect(
+                    host=self.host,
+                    user=self.user,
+                    password=self.password
+                )
+            self.db.connect()
+            self.cursor = self.db.cursor()
+            status = str(self.db)
+            print("Successfully Connect: ", status)
+
+            self.db.close()
+        except:
+            status = str(self.db)
+            print("Failed to Connect: ", status)
+
+    def connect_sql(self):
         try:
             if not self.password:
                 self.db = mysql.connector.connect(
@@ -119,7 +148,9 @@ class Database:
         student = None
         staff = None
         officer = None
+        print(search_filter)
         # Fetch User
+        self.connect_sql()
         self.db.connect()
         if search_filter == 'all' or search_filter == 'student':
             temp = ""
@@ -199,17 +230,86 @@ class Database:
 
         final_result = []
         # data = (role, id, name, year, hostel, vaccineStat, rankOfficer, plateNum, vehType, vehBrand, vehModel, roadTax)
-        for each in student:
-            temp = ('student', each[0], each[1], each[2], each[3], each[5], None, each[6], each[7], each[8],
-                    each[9], each[10])
-            final_result.append(temp)
+        if student:
+            for each in student:
+                temp = ('student', each[0], each[1], each[2], each[3], each[5], None, each[6], each[7], each[8],
+                        each[9], each[10])
+                final_result.append(temp)
 
+        if staff:
+            for each in staff:
+                temp = ('staff', each[0], each[1], None, None, each[3], None, each[4], each[5], each[6], each[7], each[8])
+                final_result.append(temp)
+
+        if officer:
+            for each in officer:
+                temp = ('officer', each[0], each[1], None, None, None, each[2], each[3], each[4], each[5], each[6], each[7])
+                final_result.append(temp)
+
+        return final_result  # student, staff, officer
+
+    ########################################################################################################################
+    ######### SEARCH ADMIN #################################################################################################
+
+    def search_admin(self, search, search_by, search_filter):
+        """
+            No need to protect from SQL Injection as it only just search
+        """
+        search_filter = search_filter.lower()
+        search = "%" + search + "%"
+        student = None
+        staff = None
+        officer = None
+        # Fetch User
+        self.connect_sql()
+        self.db.connect()
+        if search_filter == 'all' or search_filter == 'staff':
+            temp = ""
+            if search_by == "name":
+                temp = "staff." + search_by
+            elif search_by == "id":
+                temp = "staff.staffID"
+
+            # print("Staff: ", temp)
+            sql = "SELECT staff.staffID, staff.name FROM plate_num_rec.staff INNER JOIN " \
+                  "(SELECT admin.staffID FROM plate_num_rec.admin) AS b " \
+                  "ON staff.staffID=b.staffID WHERE " + temp + " LIKE '" + search + "';"
+            # val = (temp, search)
+            # self.cursor.execute("SELECT * FROM plate_num_rec.vehicle WHERE vehicle.plateNum like '%" + plate_num + "%'")
+            self.cursor.execute(sql)  # val
+            result = self.cursor.fetchall()
+            staff = result
+            # print("Staff\n", staff)
+
+        if search_filter == 'all' or search_filter == 'officer':
+            temp = ""
+            if search_by == "name":
+                temp = "officer.officerName"
+            elif search_by == "id":
+                temp = "officer.officerID"
+
+            # print("Officer: ", temp)
+            sql = "SELECT officerID, officerName FROM plate_num_rec.officer WHERE " \
+                  + temp + " LIKE '" + search + "' and officer.password IS NOT NULL;"
+            self.cursor.execute(sql)  # val
+            result = self.cursor.fetchall()
+            officer = result
+            # print("Officer\n", officer)
+
+        """
+        for car in car_list:
+            print(car)
+        """
+        self.db.close()
+
+        final_result = []
+        # data = (role, staffID, name)
         for each in staff:
-            temp = ('staff', each[0], each[1], None, None, each[3], None, each[4], each[5], each[6], each[7], each[8])
+            temp = ('staff', each[0], each[1])
             final_result.append(temp)
 
         for each in officer:
-            temp = ('officer', each[0], each[1], None, None, None, each[2], each[3], each[4], each[5], each[6], each[7])
+            temp = ('officer', each[0], each[1])
             final_result.append(temp)
 
         return final_result  # student, staff, officer
@@ -218,6 +318,7 @@ class Database:
     ######### ADD DRIVER ###################################################################################################
 
     def insert_staff(self, staff_id, name, vaccination_stats, plate_num, veh_type, veh_brand, veh_model, road_tax):
+        self.connect_sql()
         self.db.connect()
 
         staff_id = staff_id.upper()
@@ -308,6 +409,7 @@ class Database:
 
     def insert_student(self, student_id, name, year, hostel_status, vaccination_stats,
                        plate_num, veh_type, veh_brand, veh_model, road_tax):
+        self.connect_sql()
         self.db.connect()
 
         student = None
@@ -341,7 +443,8 @@ class Database:
                 status = None
                 try:
                     sql = "INSERT INTO plate_num_rec.student " \
-                          "(studentID, name, year, hostelStatus, plateNum, vaccinationStatus) VALUES (%s, %s, %s, %s, %s, %s)"
+                          "(studentID, name, year, hostelStatus, plateNum, vaccinationStatus) " \
+                          "VALUES (%s, %s, %s, %s, %s, %s)"
                     val = (student_id, name, year, hostel_status, plate_num, vaccination_stats)
                     self.cursor.execute(sql, val)
 
@@ -375,6 +478,7 @@ class Database:
 
     def insert_officer(self, officer_id, name, username=None, password=None, rank=None,
                        plate_num=None, veh_type=None, veh_brand=None, veh_model=None, road_tax=None):
+        self.connect_sql()
         self.db.connect()
 
         officer_id = officer_id.upper()
@@ -406,8 +510,8 @@ class Database:
                 if not officer:
                     try:
                         sql = "INSERT INTO plate_num_rec.officer " \
-                              "(officerID, officerName, plateNum) VALUES (%s, %s, %s)"
-                        val = (officer_id, name, plate_num)
+                              "(officerID, officerName, rank, plateNum) VALUES (%s, %s, %s, %s)"
+                        val = (officer_id, name, rank, plate_num)
                         self.cursor.execute(sql, val)
 
                         self.db.commit()
@@ -429,13 +533,13 @@ class Database:
                     return "Success!", "Officer Successfully Add"
                 else:
                     print(officer)
-                    if officer[0][5] == "" or not officer[0][5]:
+                    if officer[0][4] == "" or not officer[0][4]:
                         try:
                             # sql = "INSERT INTO plate_num_rec.officer " \
                             #       "(officerID, name, plateNum, vaccinationStatus) VALUES (%s, %s, %s, %s)"
-                            sql = "UPDATE plate_num_rec.officer SET officerName = %s, plateNum = %s " \
+                            sql = "UPDATE plate_num_rec.officer SET officerName = %s, rank = %s, plateNum = %s " \
                                   "WHERE officerID = %s;"
-                            val = (name, plate_num, officer_id)
+                            val = (name, rank, plate_num, officer_id)
                             self.cursor.execute(sql, val)
 
                             self.db.commit()
@@ -509,6 +613,7 @@ class Database:
         # sql = "INSERT INTO plate_num_rec.user (id, username, password, privilege, name) VALUES (%s, %s, %s, %s, %s)"
         # val = ('1', 'abu', 'abu', 'admin', 'abu')
 
+        self.connect_sql()
         self.db.connect()
 
         staff_id = staff_id.upper()
@@ -534,8 +639,8 @@ class Database:
                 print("Successfully Update Staff")
 
                 sql = "INSERT INTO plate_num_rec.admin " \
-                      "(staffID, password) VALUES (%s, %s)"
-                val = (staff_id, password)
+                      "(staffID, name, password) VALUES (%s, %s, %s)"
+                val = (staff_id, name, password)
                 self.cursor.execute(sql, val)
                 self.db.commit()
 
@@ -561,8 +666,8 @@ class Database:
                 print("Successfully Add Staff")
 
                 sql = "INSERT INTO plate_num_rec.admin " \
-                      "(staffID, password) VALUES (%s, %s)"
-                val = (staff_id, password)
+                      "(staffID, name, password) VALUES (%s, %s, %s)"
+                val = (staff_id, name, password)
                 self.cursor.execute(sql, val)
                 self.db.commit()
 
@@ -585,6 +690,7 @@ class Database:
         # val = ('1', 'abu', 'abu', 'admin', 'abu')
         # Insert New User
 
+        self.connect_sql()
         self.db.connect()
 
         platenum = platenum.upper()
@@ -619,32 +725,442 @@ class Database:
 
         self.db.close()
 
+    def remove_vehicle(self, plate_num):
+        plate_num = plate_num.upper()
+
+        status = ""
+        vehicle = None
+        # Fetch User
+        try:
+            sql = "SELECT * FROM plate_num_rec.vehicle where plateNum = %s"
+            val = (plate_num,)
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+            vehicle = result
+        except Exception as e:
+            msg = 'Error Searching Vehicle: ' + str(e)
+            print(msg)
+            return False, msg
+
+        # Remove Vehicle
+        if vehicle:
+            try:
+                sql = "DELETE FROM plate_num_rec.vehicle WHERE plateNum = %s"
+                val = (plate_num,)
+                self.cursor.execute(sql, val)
+
+                self.db.commit()
+                status = "Vehicle Successfully Removed: \n\tPlate Number: " + plate_num
+                print(status)
+                return True, 'Successfully Removed'
+            except Exception as e:
+                if status == "":
+                    status = "Vehicle Failed to Remove: \n\tPlate Number: " + plate_num
+                print(status)
+                msg = 'Error Removing Vehicle: ' + str(e)
+                print(msg)
+                return False, msg
+        else:
+            return False, 'Vehicle Plate does not Exist'
+
     ########################################################################################################################
-    ######### UNUSED #######################################################################################################
+    ######### OTHERS #######################################################################################################
 
     def login_user(self, staff_id, password):
         # Username is Unique ID
+        self.connect_sql()
         staff_list = None
         try:
-            self.db.reconnect()
+            self.db.connect()
 
             # Fetch User
-            self.cursor.execute(
-                "SELECT admin.username, admin.password FROM plate_num_rec.admin where admin.staffID = '" +
-                staff_id + "'")
+            sql = "SELECT admin.staffID FROM plate_num_rec.admin where admin.staffID LIKE %s"
+            val = (staff_id, )
+            self.cursor.execute(sql, val)
             result = self.cursor.fetchall()
             staff_list = result
-        except:
-            msg = "Failed to Connect"
+        except Exception as e:
+            msg = 'Error: ' + str(e)
+            return False, msg
+
+        if not staff_list:
+            self.db.close()
+            return False, "Unrecognised Staff ID"
+
+        try:
+            # Fetch User
+            sql = "SELECT admin.staffID FROM plate_num_rec.admin where " \
+                  "admin.staffID LIKE %s AND " \
+                  "admin.password COLLATE latin1_general_cs LIKE %s"
+            val = (staff_id, password)
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+            staff_list = result
+        except Exception as e:
+            msg = 'Error: ' + str(e)
             return False, msg
 
         if staff_list:
-            for staff in staff_list:
-                print(staff)
-            return staff_list[0]
+            self.db.close()
+            return True, ''
         else:
+            self.db.close()
             print("Staff ID does not Exist")
-            return
+            return False, 'Incorrect Password'
+
+    def remove_driver(self, data):
+        """
+        Pram for Data Structure:
+            Student:
+                [driver[0], driver[1].upper(), name, role, driver_id, year, hostel, vac_stat, plate_num,
+                             veh_type, veh_brand, veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+            Staff:
+                [driver[0], driver[1].upper(), name, role, driver_id, vac_stat, plate_num, veh_type,
+                             veh_brand, veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+            Officer:
+                [driver[0], driver[1].upper(), name, role, driver_id, rank, plate_num, veh_type, veh_brand,
+                             veh_model, road_tax,
+                             driver_img_tk, driver_img_label, dw_result, driver_img, edit_btn, remove_btn]
+        """
+
+        status = ""
+        self.connect_sql()
+        self.db.connect()
+
+        # Fetch Driver
+        student = None
+        try:
+            sql = "SELECT * FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+            val = (data[2], )
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+        except Exception as e:
+            msg = 'Error Searching ' + data[0] + ': ' + str(e)
+            print(msg)
+            self.db.close()
+            return False, msg
+
+        has_pass = None
+        if data[0] == 'officer':
+            try:
+                sql = "SELECT * FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s and password IS NOT NULL;"
+                val = (data[2],)
+                self.cursor.execute(sql, val)
+                has_pass = self.cursor.fetchall()
+            except Exception as e:
+                msg = 'Error Searching ' + data[1] + ': ' + str(e)
+                print(msg)
+                self.db.close()
+                return False, msg
+
+        # Remove Driver
+        if result:
+            try:
+                sql = ''
+                val = None
+                if data[0] == 'student':
+                    sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    val = (data[2], )
+                elif data[0] == 'staff':
+                    # sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    sql = "UPDATE plate_num_rec.staff  SET  plateNum = NULL, vaccinationStatus = NULL " \
+                          "WHERE " + data[1] + " = %s;"
+                    val = (data[2], )
+                elif data[0] == 'officer' and has_pass:
+                    # sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    sql = "UPDATE plate_num_rec.officer  SET  plateNum = NULL, rank = NULL " \
+                          "WHERE " + data[1] + " = %s;"
+                    val = (data[2], )
+                elif data[0] == 'officer' and not has_pass:
+                    sql = "DELETE FROM plate_num_rec.officer where " + data[1] + " = %s;"
+                    val = (data[2],)
+                self.cursor.execute(sql, val)
+
+                self.db.commit()
+                status = "User Successfully Removed: \n\t" + data[1] + "\t\t: " + data[2]
+
+                stats, msg = self.remove_vehicle(data[3])
+
+                self.db.close()
+                if stats:
+                    return True, 'Successfully Remove Driver'
+                else:
+                    return stats, msg
+
+            except Exception as e:
+                if status == "":
+                    status = "User Failed to Remove: \n\t" + data[1] + "\t\t: " + data[2]
+                print(status)
+                msg = 'Error Remove ' + data[0] + ': ' + str(e)
+                print(msg)
+                self.db.close()
+                return False, msg
+        else:
+            self.db.close()
+            return False, "Driver Not Found"
+
+    def edit_driver(self, driver_id, role, data_type, value):
+        role = role.lower()
+        driver_id = driver_id.upper()
+        db_attribute = {
+            'Name': 'name',
+            'Year': 'year',
+            'Hostel': 'hostelStatus',
+            'Vaccination Status': 'vaccinationStatus',
+            'Rank': 'rank',
+            'Plate Number': 'plateNum',
+            'Vehicle Type': 'vehType',
+            'Vehicle Brand': 'vehBrand',
+            'Vehicle Model': 'vehModel',
+            'Road Tax': 'roadTaxExpiry'
+        }
+        type_db = db_attribute[data_type]
+        id_type = ''
+
+        if role == 'student':
+            id_type = 'studentID'
+        elif role == 'staff':
+            id_type = 'staffID'
+        elif role == 'officer':
+            id_type = 'officerID'
+            if type_db == 'name':
+                type_db = 'officerName'
+
+        self.connect_sql()
+        self.db.connect()
+        # Fetch User
+        status = ""
+        try:
+            sql = "SELECT " + id_type + ", plateNum FROM plate_num_rec." + role + \
+                  " where " + id_type + " = %s and plateNum IS NOT NULL"
+            val = (driver_id,)
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+
+        except Exception as e:
+            msg = 'Error: ' + str(e)
+            print(msg)
+            return False, msg
+
+        if result:
+            try:
+                if type_db == 'plateNum' or type_db == 'vehType' or type_db == 'vehBrand' or type_db == 'vehModel' or \
+                        type_db == 'roadTaxExpiry':
+                    sql = "UPDATE plate_num_rec.vehicle SET " + type_db + " = %s WHERE plateNum = %s;"
+                    val = (value, result[0][1])
+                else:
+                    sql = "UPDATE plate_num_rec." + role + " SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                    val = (value, driver_id)
+                self.cursor.execute(sql, val)
+                self.db.commit()
+
+                if type_db == 'plateNum':
+                    sql = "UPDATE plate_num_rec." + role + " SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                    val = (value, driver_id)
+                    self.cursor.execute(sql, val)
+                    self.db.commit()
+
+                self.db.close()
+                return True, 'Successfully Edit Driver'
+            except Exception as e:
+                msg = 'Error: ' + str(e)
+                print(msg)
+                return False, msg
+        else:
+            return False, 'Driver Has No Vehicle'
+
+    def remove_admin(self, data):
+        """
+        Pram for Data Structure:
+            Staff:
+                [staff, staffID, name, edit_btn, remove_btn]
+            Officer:
+                [officer, OfficerID, name, edit_btn, remove_btn]
+        """
+        # status = ""
+        # role_type = ''
+        # role = data[0]
+        # if role == 'staff':
+        #     role = 'admin'
+        #     role_type = 'staffID'
+        # elif role == 'officer':
+        #     role_type = 'officerID'
+
+
+        self.connect_sql()
+        self.db.connect()
+
+        # Fetch User
+        student = None
+        try:
+            sql = "SELECT * FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+            val = (data[2], )
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+        except Exception as e:
+            msg = 'Error Searching ' + data[1] + ': ' + str(e)
+            print(msg)
+            self.db.close()
+            return False, msg
+
+        has_plate = None
+        if data[0] == 'officer':
+            try:
+                sql = "SELECT * FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s and plateNum IS NOT NULL;"
+                val = (data[2],)
+                self.cursor.execute(sql, val)
+                has_plate = self.cursor.fetchall()
+            except Exception as e:
+                msg = 'Error Searching ' + data[1] + ': ' + str(e)
+                print(msg)
+                self.db.close()
+                return False, msg
+
+        # Remove User
+        print(result)
+        if result:
+            try:
+                sql = ''
+                val = None
+                if data[0] == 'admin':
+                    # sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    val = (data[2], )
+                elif data[0] == 'officer' and has_plate:
+                    # sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    sql = "UPDATE plate_num_rec." + data[0] + "  SET  password = NULL WHERE " + data[1] + " = %s;"
+                    val = (data[2], )
+                elif data[0] == 'officer' and not has_plate:
+                    sql = "DELETE FROM plate_num_rec." + data[0] + " where " + data[1] + " = %s;"
+                    val = (data[2],)
+                self.cursor.execute(sql, val)
+
+                self.db.commit()
+                self.db.close()
+                status = "User Successfully Removed: \n\t" + data[1] + "\t\t: " + data[2]
+
+                return True, 'Successfully Remove User'
+
+            except Exception as e:
+                if status == "":
+                    status = "User Failed to Remove: \n\t" + data[1] + "\t\t: " + data[2]
+                print(status)
+                msg = 'Error Remove ' + data[0] + ': ' + str(e)
+                print(msg)
+                self.db.close()
+                return False, msg
+        else:
+            self.db.close()
+            return False, "User Not Found"
+
+    def edit_admin_personal(self, admin_id, role, data_type, value):
+        role = role.lower()
+        admin_id = admin_id.upper()
+        db_attribute = {
+            'Name': 'name',
+            'Password': 'password'
+        }
+        type_db = db_attribute[data_type]
+        id_type = ''
+
+        if role == 'staff':
+            id_type = 'staffID'
+            role = 'admin'
+        elif role == 'officer':
+            id_type = 'officerID'
+            if type_db == 'name':
+                type_db = 'officerName'
+
+        self.connect_sql()
+        self.db.connect()
+        # Fetch User
+        status = ""
+        try:
+            sql = "SELECT " + id_type + " FROM plate_num_rec." + role + \
+                  " where " + id_type + " = %s"
+            val = (admin_id,)
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+
+        except Exception as e:
+            msg = 'Error: ' + str(e)
+            print(msg)
+            return False, msg
+
+        if result:
+            try:
+                sql = "UPDATE plate_num_rec." + role + " SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                val = (value, admin_id)
+                self.cursor.execute(sql, val)
+                self.db.commit()
+
+                if role == 'admin' and type_db == 'name':
+                    sql = "UPDATE plate_num_rec.staff SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                    val = (value, admin_id)
+                    self.cursor.execute(sql, val)
+                    self.db.commit()
+
+                self.db.close()
+                return True, 'Successfully Edit Admin'
+            except Exception as e:
+                msg = 'Error: ' + str(e)
+                print(msg)
+                return False, msg
+        else:
+            return False, 'This ID is not Admin/Officer'
+
+    def edit_admin(self, data):
+        role = data[0].lower()
+        id_type = data[1]
+        type_db = data[2]
+        admin_id = data[3].upper()
+        value = data[4]
+
+        if type_db != 'password':
+            value = value.upper()
+
+        self.connect_sql()
+        self.db.connect()
+        # Fetch User
+        status = ""
+        try:
+            sql = "SELECT " + id_type + " FROM plate_num_rec." + role + \
+                  " where " + id_type + " = %s"
+            val = (admin_id,)
+            self.cursor.execute(sql, val)
+            result = self.cursor.fetchall()
+
+        except Exception as e:
+            msg = 'Error: ' + str(e)
+            print(msg)
+            return False, msg
+
+        if result:
+            try:
+                sql = "UPDATE plate_num_rec." + role + " SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                val = (value, admin_id)
+                self.cursor.execute(sql, val)
+                self.db.commit()
+
+                if type_db == 'name' and role == 'admin':
+                    sql = "UPDATE plate_num_rec.staff SET " + type_db + " = %s WHERE " + id_type + " = %s;"
+                    val = (value, admin_id)
+                    self.cursor.execute(sql, val)
+                    self.db.commit()
+
+                self.db.close()
+                return True, 'Successfully Edit Admin'
+            except Exception as e:
+                msg = 'Error: ' + str(e)
+                print(msg)
+                return False, msg
+        else:
+            return False, 'This ID is not Admin/Officer'
+
+    ########################################################################################################################
+    ######### UNUSED #######################################################################################################
 
     """
     def select_user(self):
@@ -656,107 +1172,6 @@ class Database:
         for staff in staff_list:
             print(staff)
     """
-
-    def edit_student(self, id, value, mode):
-        status = ""
-        mode_name = ""
-        sql = ""
-        val = ""
-        val_bef = ""
-
-        # Fetch User
-        status = ""
-        self.cursor.execute("SELECT * FROM plate_num_rec.student where student.studentID = '" + str(id) + "'")
-        result = self.cursor.fetchall()
-
-        if result:
-            if mode == 1:
-                mode_name = "studentID"
-                val_bef = result[0][1]
-                value = value.upper()
-            elif mode == 2:
-                mode_name = "name"
-            elif mode == 3:
-                mode_name = "year"
-                val_bef = result[0][3]
-            elif mode == 4:
-                mode_name = "hostelStatus"
-                val_bef = result[0][4]
-                value = value
-            elif mode == 5:
-                mode_name = "plateNum"
-                val_bef = result[0][5]
-                value = value.upper()
-            elif mode == 6:
-                mode_name = "vaccinationStatus"
-                val_bef = result[0][6]
-                value = value
-
-            try:
-                sql = "UPDATE plate_num_rec.student SET student." + mode_name.lower() + " = %s WHERE student.studentID = %s;"
-                val = (value, id)
-                self.cursor.execute(sql, val)
-
-                self.db.commit()
-
-                if mode != 2:
-                    status = "User Successfully Edit: \n\tChanges has made:\n\t\t" + \
-                             mode_name + "\t: " + val_bef + " -> " + value
-                else:
-                    status = "User Successfully Edit: \n\tChanges has made: Password"
-            except:
-                if mode != 2:
-                    status = "User Failed to Edit: \n\tChanges to make:\n\t\t" + \
-                             mode_name + "\t: " + val_bef + " -/> " + value
-                else:
-                    status = "User Successfully Edit: \n\tChanges has made: Password"
-        else:
-            status = "ID does not Exist"
-
-        print(status)
-
-    def remove_student(self, id):
-        status = ""
-        # Fetch User
-        try:
-            self.cursor.execute("SELECT * FROM plate_num_rec.student where studentID = '" + str(id) + "'")
-            result = self.cursor.fetchall()
-            student = result
-
-            studentid = student[0][1]
-            name = student[0][2]
-            year = student[0][3]
-            hostelstatus = student[0][4]
-            platenum = student[0][5]
-            vacstatus = student[0][6]
-
-        except:
-            status = "Student ID " + str(id) + " Does Not Exist"
-
-        # Remove User
-        try:
-            self.cursor.execute("DELETE FROM plate_num_rec.student WHERE studentID = '" + str(id) + "'")
-
-            self.db.commit()
-            status = "User Successfully Removed: \n\tID\t\t\t: " + str(id) + \
-                     "\n\tStudentID\t\t: " + studentid + \
-                     "\n\tName\t: " + name + \
-                     "\n\tYear\t: " + year + \
-                     "\n\tHostel Status\t: " + hostelstatus + \
-                     "\n\tPlate Num\t: " + platenum + \
-                     "\n\tVax Status\t: " + vacstatus
-
-        except:
-            if status == "":
-                status = "User Failed to Remove: \n\tID\t\t\t: " + str(id) + \
-                         "\n\tStudentID\t\t: " + studentid + \
-                         "\n\tName\t: " + name + \
-                         "\n\tYear\t: " + year + \
-                         "\n\tHostel Status\t: " + hostelstatus + \
-                         "\n\tPlate Num\t: " + platenum + \
-                         "\n\tVax Staus\t: " + vacstatus
-
-        print(status)
 
     def edit_vehicle(self, plate_num, value, mode):
         status = ""
@@ -809,44 +1224,196 @@ class Database:
 
         print(status)
 
-    def remove_vehicle(self, plate_num):
-        plate_num = plate_num.upper()
-
-        status = ""
-        # Fetch User
-        try:
-            self.cursor.execute("SELECT * FROM plate_num_rec.vehicle where plateNum = '" + plate_num + "'")
-            result = self.cursor.fetchall()
-            car = result
-
-            plate_num = car[0][1]
-            name = car[0][2]
-            carbrand = car[0][3]
-            roadtaxexpiry = car[0][4]
-
-        except:
-            status = "Plate Number " + plate_num + " Does Not Exist"
-
-        # Remove User
-        try:
-            self.cursor.execute("DELETE FROM plate_num_rec.vehicle WHERE plateNum = '" + plate_num + "'")
-
-            self.db.commit()
-            status = "Vehicle Successfully Removed: \n\tPlate Number: " + plate_num + \
-                     "\n\tPlate Number\t: " + plate_num + \
-                     "\n\tName\t: " + name + \
-                     "\n\tCar Brand\t: " + carbrand
-        except:
-            if status == "":
-                status = "Vehicle Failed to Remove: \n\tPlate Number: " + plate_num + \
-                         "\n\tPlate Number\t: " + plate_num + \
-                         "\n\tName\t: " + name + \
-                         "\n\tCar Brand\t: " + carbrand
-
-        print(status)
-
 
 ########################################################################################################################
+
+class Filezilla:
+    def __init__(self, host="localhost", user="pnradmin", password="pnradmin"):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.ftp = None
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            print("Successfully Connect: ", self.ftp)
+            self.ftp.login(self.user, self.password)
+            self.ftp.close()
+        except BaseException as err:
+            print("Error: ", err)
+
+    def update_connection(self, host=None, user=None, password=None):
+        if not host:
+            self.host = "localhost"
+        else:
+            self.host = host
+        if not user:
+            self.user = "pnradmin"
+        else:
+            self.user = user
+        if not password:
+            self.password = "pnradmin"
+        else:
+            self.password = password
+
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            print("Successfully Connect: ", self.ftp)
+            self.ftp.login(self.user, self.password)
+            self.ftp.close()
+            return True
+        except BaseException as err:
+            print("Error: ", err)
+            return False
+
+    # To upload files to server
+    def up_to_server(self, imgpath, imgfile, driver_id, mode):
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            self.ftp.login(self.user, self.password)
+
+            if mode == 1:
+                self.ftp.cwd("/driver")  # Folder path
+            elif mode == 2:
+                self.ftp.cwd("/plate_number")  # Folder path
+            elif mode == 3:
+                self.ftp.cwd("/webcam")  # Folder path
+
+            with open(os.path.join(imgpath, imgfile), "rb") as file:
+                # Command for Uploading the file "STOR filename"
+                self.ftp.storbinary(f"STOR {imgfile}", file)
+
+            # Change file name into studentid/staffid
+            for f in self.ftp.nlst():
+                if driver_id in f:
+                    self.ftp.delete(driver_id)
+                if imgfile in f:
+                    self.ftp.rename(imgfile, driver_id.upper() + os.path.splitext(imgfile)[1])
+
+            # os.remove(imgfile)  # Delete file from local/client side
+            self.ftp.dir()
+
+            file.close()
+            self.ftp.quit()
+            return True
+        except BaseException as err:
+            print("Error: ", err)
+            return False
+
+    # To download files from server
+    def dw_from_server(self, imgpath, id_driver, mode):
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            self.ftp.login(self.user, self.password)
+
+            if mode == 1:
+                self.ftp.cwd("/driver")  # Folder path
+            elif mode == 2:
+                self.ftp.cwd("/plate_number")  # Folder path
+            elif mode == 3:
+                self.ftp.cwd("/webcam")  # Folder path
+
+            filelist = []
+            self.ftp.retrlines('LIST', filelist.append)
+            print(filelist)
+
+            f = 0
+
+            filename = ''
+            for f in filelist:
+                if id_driver in f:
+                    filename = id_driver + os.path.splitext(f)[1]
+                    print(filename)
+                    with open(filename, "wb") as file:
+                        # Command for Uploading the file "STOR filename"
+                        self.ftp.retrbinary(f"RETR {filename}", file.write)
+                        f = 1
+
+                    self.ftp.dir()
+                    file.close()
+                    print("SUCCESSFULLY TRANSFERRED")
+
+            source = os.path.join('./', filename)
+            dest = os.path.join(imgpath, filename)
+            shutil.move(source, dest)
+
+            if f == 0:
+                print("FILE DOES NOT EXIST")
+                return False, ''
+
+            self.ftp.quit()
+            return True, filename
+        except BaseException as err:
+            print("Error: ", err)
+            return False, ''
+
+    def rem_from_server(self, id_driver):
+        DRIVER = 'driver'
+        PLATE = 'plate_number'
+
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            self.ftp.login(self.user, self.password)
+
+            self.ftp.cwd("/driver")
+            filelist = []
+            self.ftp.retrlines('LIST', filelist.append)
+            print(filelist)
+
+            filename = ''
+            for f in filelist:
+                if id_driver in f:
+                    filename = id_driver + os.path.splitext(f)[1]
+                    print(filename)
+                    self.ftp.delete(filename)
+                    print("SUCCESSFULLY REMOVED DRIVER")
+
+            self.ftp.cwd("/plate_number")
+            filelist = []
+            self.ftp.retrlines('LIST', filelist.append)
+            print(filelist)
+
+            filename = ''
+            for f in filelist:
+                if id_driver in f:
+                    filename = id_driver + os.path.splitext(f)[1]
+                    print(filename)
+                    self.ftp.delete(filename)
+                    print("SUCCESSFULLY REMOVED PLATE NUMBER")
+
+            self.ftp.quit()
+            return True, 'Successfully Remove Image'
+        except Exception as e:
+            msg = "Error: " + str(e)
+            print(msg)
+            self.ftp.quit()
+            return False, msg
+
+
+    # Download all files from server's directories
+    def dw_all_files(self, mode):
+        try:
+            self.ftp = ftplib.FTP(self.host)
+            self.ftp.login(self.user, self.password)
+
+            if mode == 1:
+                self.ftp.cwd("/driver")  # Folder path
+            elif mode == 2:
+                self.ftp.cwd("/plate_number")  # Folder path
+            elif mode == 3:
+                self.ftp.cwd("/webcam")  # Folder path
+
+            for f in self.ftp.nlst():
+                with open(f, "wb") as file:
+                    # Command for Uploading the file "STOR filename"
+                    self.ftp.retrbinary(f"RETR {f}", file.write)
+
+            file.close()
+            self.ftp.close()
+            return True
+        except BaseException as err:
+            print("Error: ", err)
+            return False
+
 
 
 # db = Database()
@@ -855,6 +1422,7 @@ class Database:
 # db.connect()
 
 """
+    MySQL
     Older Version
 """
 # db.insert_user('bulat 3', 'bakar', 'admin', 'ali')
@@ -867,6 +1435,7 @@ class Database:
 # db.remove_car_owner("ABC1234")
 
 """
+    MySQL
     Latest Version
 """
 # db.search_driver('a', 'plate', 'all')
@@ -876,3 +1445,10 @@ class Database:
 # db.insert_admin('abc', '123456789', '123', '123')
 # db.insert_officer('1234', 'abc', '123', '123', 'abc')
 # db.insert_officer('4321', 'cba', '123', '123', 'cba', 'AAA1111', 'Bike', 'Yamaha', 'R15', '2022-12-15')
+
+"""
+    FileZilla
+"""
+# fl = Filezilla()
+# fl.up_to_server("tom.png", "B031910127.png", 2)
+# fl.dw_from_server(os.path.join('temp', 'driver'), "B031910126", 1)

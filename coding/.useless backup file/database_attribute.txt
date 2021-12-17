@@ -4,8 +4,8 @@ Vaccination status:
 	- Fully vaccinated
 
 Hostel status
-	- Inside Utem
-	- Outside utem
+	- Inside UTeM
+	- Outside UTeM
 
 officer rank
 	- Sub-Inspektor (SI)

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 17, 2021 at 04:26 PM
+-- Generation Time: Dec 14, 2021 at 05:51 AM
 -- Server version: 10.4.16-MariaDB
 -- PHP Version: 7.4.12
 
@@ -30,15 +30,8 @@ SET time_zone = "+00:00";
 CREATE TABLE `admin` (
   `staffID` varchar(15) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
-  `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL
+  `password` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Dumping data for table `admin`
---
-
-INSERT INTO `admin` (`staffID`, `name`, `password`) VALUES
-('root', 'root', 'root');
 
 -- --------------------------------------------------------
 
@@ -61,7 +54,7 @@ CREATE TABLE `entry_log` (
 CREATE TABLE `officer` (
   `officerID` varchar(15) NOT NULL,
   `officerName` varchar(50) DEFAULT NULL,
-  `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL,
+  `password` varchar(50) DEFAULT NULL,
   `rank` varchar(20) DEFAULT NULL,
   `plateNum` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -75,9 +68,17 @@ CREATE TABLE `officer` (
 CREATE TABLE `staff` (
   `staffID` varchar(10) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
+  `status` varchar(20) DEFAULT NULL,
   `plateNum` varchar(10) DEFAULT NULL,
   `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `staff`
+--
+
+INSERT INTO `staff` (`staffID`, `name`, `status`, `plateNum`, `vaccinationStatus`) VALUES
+('b23456789', 'cba', 'lecturer', 'cba1234', '2 dose');
 
 -- --------------------------------------------------------
 
@@ -94,6 +95,14 @@ CREATE TABLE `student` (
   `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Dumping data for table `student`
+--
+
+INSERT INTO `student` (`studentID`, `name`, `year`, `hostelStatus`, `plateNum`, `vaccinationStatus`) VALUES
+('b031910126', 'abc', 2, 'campus', 'cab1234', '2 dose'),
+('b999999999', 'abc', 2, 'campus', 'cab1234', '2 dose');
+
 -- --------------------------------------------------------
 
 --
@@ -102,11 +111,19 @@ CREATE TABLE `student` (
 
 CREATE TABLE `vehicle` (
   `plateNum` varchar(10) NOT NULL,
-  `vehType` varchar(5) DEFAULT NULL,
+  `name` varchar(50) DEFAULT NULL,
   `vehBrand` varchar(20) DEFAULT NULL,
   `vehModel` varchar(20) DEFAULT NULL,
   `roadTaxExpiry` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `vehicle`
+--
+
+INSERT INTO `vehicle` (`plateNum`, `name`, `vehBrand`, `vehModel`, `roadTaxExpiry`) VALUES
+('ABC 1234', 'Aniq', 'Saga', '0', '2021-12-16'),
+('CAB1234', 'anqib', 'pijot', '0', '2022-12-15');
 
 --
 -- Indexes for dumped tables
