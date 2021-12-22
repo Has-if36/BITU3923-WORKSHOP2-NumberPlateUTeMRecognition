@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 17, 2021 at 04:26 PM
+-- Generation Time: Dec 19, 2021 at 04:36 PM
 -- Server version: 10.4.16-MariaDB
 -- PHP Version: 7.4.12
 
@@ -28,7 +28,7 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `admin` (
-  `staffID` varchar(15) NOT NULL,
+  `staffID` varchar(50) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
   `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -38,7 +38,7 @@ CREATE TABLE `admin` (
 --
 
 INSERT INTO `admin` (`staffID`, `name`, `password`) VALUES
-('root', 'root', 'root');
+('root', NULL, 'root');
 
 -- --------------------------------------------------------
 
@@ -47,9 +47,12 @@ INSERT INTO `admin` (`staffID`, `name`, `password`) VALUES
 --
 
 CREATE TABLE `entry_log` (
-  `plateNum` varchar(10) NOT NULL,
-  `date` date DEFAULT NULL,
-  `time` time(6) DEFAULT NULL
+  `plateNum` varchar(50) NOT NULL,
+  `date` date NOT NULL DEFAULT current_timestamp(),
+  `time` time(6) NOT NULL DEFAULT current_timestamp(),
+  `recognition` varchar(15) DEFAULT NULL,
+  `type` varchar(10) DEFAULT NULL,
+  `gate` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -59,11 +62,11 @@ CREATE TABLE `entry_log` (
 --
 
 CREATE TABLE `officer` (
-  `officerID` varchar(15) NOT NULL,
+  `officerID` varchar(50) NOT NULL,
   `officerName` varchar(50) DEFAULT NULL,
   `password` varchar(50) CHARACTER SET latin1 COLLATE latin1_general_cs DEFAULT NULL,
   `rank` varchar(20) DEFAULT NULL,
-  `plateNum` varchar(10) DEFAULT NULL
+  `plateNum` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -73,9 +76,9 @@ CREATE TABLE `officer` (
 --
 
 CREATE TABLE `staff` (
-  `staffID` varchar(10) NOT NULL,
+  `staffID` varchar(50) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
-  `plateNum` varchar(10) DEFAULT NULL,
+  `plateNum` varchar(50) DEFAULT NULL,
   `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -86,11 +89,11 @@ CREATE TABLE `staff` (
 --
 
 CREATE TABLE `student` (
-  `studentID` varchar(10) NOT NULL,
+  `studentID` varchar(50) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
   `year` int(1) DEFAULT NULL,
   `hostelStatus` varchar(20) DEFAULT NULL,
-  `plateNum` varchar(10) DEFAULT NULL,
+  `plateNum` varchar(50) DEFAULT NULL,
   `vaccinationStatus` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -101,7 +104,7 @@ CREATE TABLE `student` (
 --
 
 CREATE TABLE `vehicle` (
-  `plateNum` varchar(10) NOT NULL,
+  `plateNum` varchar(50) NOT NULL,
   `vehType` varchar(5) DEFAULT NULL,
   `vehBrand` varchar(20) DEFAULT NULL,
   `vehModel` varchar(20) DEFAULT NULL,
@@ -122,7 +125,7 @@ ALTER TABLE `admin`
 -- Indexes for table `entry_log`
 --
 ALTER TABLE `entry_log`
-  ADD PRIMARY KEY (`plateNum`);
+  ADD PRIMARY KEY (`plateNum`,`date`,`time`) USING BTREE;
 
 --
 -- Indexes for table `officer`
